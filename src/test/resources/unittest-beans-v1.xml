@@ -1,0 +1,22 @@
+<beans 
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    
+    xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <bean id="ExampleClassAnnotation" class="com.schoste.ddd.application.v1.annotations.ExampleClassAnnotationPreHandler" scope="singleton">
+        <property name="priority" value="0" />
+    </bean>
+    <bean id="ExampleMethodAnnotation" class="com.schoste.ddd.application.v1.annotations.ExampleMethodAnnotationPreHandler" scope="singleton">
+        <property name="priority" value="1" />
+    </bean>
+
+    <bean id="MockedDomainObjectARepository" class="com.schoste.ddd.domain.v1.services.mocked.MockedDomainObjectARepositoryImpl" scope="singleton" />
+	<bean id="MockedDomainObjectA" class="com.schoste.ddd.domain.v1.models.MockedDomainObjectA" scope="prototype" />
+	<bean id="UnitOfWork" class="com.schoste.ddd.domain.v1.services.standard.UnitOfWorkImpl" scope="prototype" />
+    <bean id="MockedDataObjectA" class="com.schoste.ddd.infrastructure.dal.v2.models.MockedDataObjectA" scope="prototype" />
+    <bean id="MockedDataObjectADAO" class="com.schoste.ddd.infrastructure.dal.v2.services.mocked.MockedDataObjectADAOImpl" scope="singleton" />
+	<bean id="MockedDataTransferObjectAConverter" class="com.schoste.ddd.application.v1.dtos.mocked.MockedDataTransferObjectAConverterImpl" scope="prototype" />
+</beans>
