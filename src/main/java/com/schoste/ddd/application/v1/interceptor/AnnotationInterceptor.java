@@ -9,14 +9,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * Version 1 implementation of the handler interceptor to handle
@@ -25,7 +25,7 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
  * @author Philipp Schosteritsch <s.philipp@schoste.com>
  *
  */
-public class AnnotationInterceptor extends HandlerInterceptorAdapter
+public class AnnotationInterceptor implements HandlerInterceptor
 {
 	@Autowired
 	protected ApplicationContext context;
@@ -137,10 +137,10 @@ public class AnnotationInterceptor extends HandlerInterceptorAdapter
 	@Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception
     {
-		if (!(handler instanceof HandlerMethod)) return super.preHandle(request, response, handler);
+		if (!(handler instanceof HandlerMethod)) return false;
 		if (!this.preHandle(request, response, (HandlerMethod)handler)) return false;
 		
-		return super.preHandle(request, response, handler);
+		return true;
     }
 
 	/**

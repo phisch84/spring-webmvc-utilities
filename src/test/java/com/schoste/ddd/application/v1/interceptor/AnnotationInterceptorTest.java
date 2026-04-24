@@ -1,6 +1,6 @@
 package com.schoste.ddd.application.v1.interceptor;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -15,7 +15,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.schoste.ddd.application.v1.controller.TestController;
-import com.schoste.ddd.application.v1.interceptor.AnnotationInterceptor;
 
 /**
  * Test class for {@link AnnotationInterceptor}

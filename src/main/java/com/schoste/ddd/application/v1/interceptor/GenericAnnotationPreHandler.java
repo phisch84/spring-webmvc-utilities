@@ -2,8 +2,8 @@ package com.schoste.ddd.application.v1.interceptor;
 
 import java.lang.annotation.Annotation;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Base class for annotation handlers which are fired before a request is processed.
