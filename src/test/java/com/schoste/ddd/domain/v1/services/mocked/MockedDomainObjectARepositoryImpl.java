@@ -3,6 +3,7 @@ package com.schoste.ddd.domain.v1.services.mocked;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.schoste.ddd.domain.v1.models.MockedDomainObjectA;
+import com.schoste.ddd.domain.v1.services.LazyRepositoryLoader;
 import com.schoste.ddd.domain.v1.services.MockedDomainObjectARepository;
 import com.schoste.ddd.domain.v1.services.standard.GenericRepositoryImpl;
 import com.schoste.ddd.infrastructure.dal.v2.models.MockedDataObjectA;
@@ -27,5 +28,11 @@ public class MockedDomainObjectARepositoryImpl extends GenericRepositoryImpl<Moc
 	@Override
 	protected void afterAutoConversation(MockedDomainObjectA domainObject, MockedDataObjectA dataObject) throws Exception
 	{
+	}
+
+	@Override
+	protected LazyRepositoryLoader<MockedDataObjectA, MockedDomainObjectA> createLazyLoader() throws Exception {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'createLazyLoader'");
 	}
 }

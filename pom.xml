@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.schoste.ddd.application</groupId>
     <artifactId>spring-webmvc-utilities</artifactId>
-    <version>0.2.RELEASE</version>
+    <version>0.3.RELEASE</version>
     <name>Spring MVC Web Application Utilities</name>
     <url>https://www.schoste.com/</url>
 
@@ -16,8 +16,8 @@
         <junit.version>4.13.2</junit.version>
         <spring.version>7.0.7</spring.version>
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
-        <ddd.dao.version>3.0.0.RELEASE</ddd.dao.version>
-        <ddd.domain-repository.version>2.0.0.RELEASE</ddd.domain-repository.version>
+        <ddd.dao.version>3.1.0.RELEASE</ddd.dao.version>
+        <ddd.domain-repository.version>2.1.0.RELEASE</ddd.domain-repository.version>
     </properties>
 
     <repositories>
