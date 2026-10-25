@@ -17,6 +17,10 @@ import com.schoste.ddd.domain.v3.exceptions.DomainException;
  * <p>
  * Converting a DTO to an entity never adds the entity to its repository or saves it: the caller decides what
  * happens to the entity (e.g. by adding it to the repository and committing a unit of work).
+ * <p>
+ * Exceptions: every method passes on {@link DomainException}s (where it declares them) and {@link ApplicationException}s,
+ * including their subclasses, unchanged. Every other exception is wrapped in an {@link ApplicationException} with the
+ * exception as its cause. The methods for collections stop at the first object which fails.
  *
  * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  *
@@ -48,12 +52,13 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	 *
 	 * @param dataTransferObject the DTO to get or create the entity for
 	 * @return the entity of the DTO
+	 * @throws DomainException re-throws every exception from the domain layer, e.g. of the repository
 	 * @throws NoRepositoryException thrown if there is no repository to get or create entities from
 	 * @throws EntityNotFoundException thrown if the id of the DTO is actual, but the repository returns no entity for it:
 	 * it doesn't exist, its data object is flagged deleted, or its removal is pending
 	 * @throws ApplicationException re-throws other exceptions as application exceptions
 	 */
-	E createEntity(DTO dataTransferObject) throws NoRepositoryException, EntityNotFoundException, ApplicationException;
+	E createEntity(DTO dataTransferObject) throws DomainException, NoRepositoryException, EntityNotFoundException, ApplicationException;
 
 	/**
 	 * Creates a data transfer object (DTO) from a given entity:
@@ -73,10 +78,10 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	 *
 	 * @param entities the entities to convert; none of them may be null
 	 * @return the DTOs in the order of the entities, or null if entities is null
-	 * @throws ApplicationException re-throws every exception as application exception,
-	 * including those of the domain layer
+	 * @throws DomainException re-throws every exception from the domain layer
+	 * @throws ApplicationException re-throws other exceptions as application exceptions
 	 */
-	Collection<DTO> toDataTransferObjectsFromEntities(Collection<E> entities) throws ApplicationException;
+	Collection<DTO> toDataTransferObjectsFromEntities(Collection<E> entities) throws DomainException, ApplicationException;
 
 	/**
 	 * Creates a data transfer object (DTO) from given parameters, without entity.
@@ -94,7 +99,7 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	 *
 	 * @param params the parameters of each DTO
 	 * @return the DTOs in the order of the parameters, or null if params is null
-	 * @throws ApplicationException re-throws every exception as application exception
+	 * @throws ApplicationException re-throws other exceptions as application exceptions
 	 */
 	Collection<DTO> toDataTransferObjects(Collection<Object[]> params) throws ApplicationException;
 
@@ -113,7 +118,7 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	 *
 	 * @param dtos the data transfer objects to process
 	 * @return the results in the order of the DTOs, or null if dtos is null
-	 * @throws ApplicationException re-throws every exception as application exception
+	 * @throws ApplicationException re-throws other exceptions as application exceptions
 	 */
 	Collection<Object> fromDataTransferObjects(Collection<DTO> dtos) throws ApplicationException;
 

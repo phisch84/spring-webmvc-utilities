@@ -115,7 +115,12 @@ The Javadoc of the package `com.schoste.ddd.application.v2.interceptor` contains
 All exceptions extend `ApplicationException`. If `ApplicationException.handler` is set, it is notified whenever one is created
 (e.g. to log them at one place). `NoRepositoryException` means a converter has no repository, `EntityNotFoundException`
 (with `getId()`) means a DTO refers to an entity the repository doesn't provide; a web application usually answers it with
-404. Exceptions of the domain layer are passed on unchanged where a method declares them.
+404. Exceptions of the domain layer (`DomainException`) and application exceptions are passed on unchanged; every other
+exception is wrapped in an `ApplicationException`. The messages come from the library's own resource bundle
+`com.schoste.ddd.application.v2.exceptions.messages`, so a project's own `exceptions.properties` doesn't interfere.
+
+The DTO flags `isDeleted()` / `isAddedOrModified()` are a convention between a server and its clients; the library never
+reads or sets them.
 
 ## Building
 

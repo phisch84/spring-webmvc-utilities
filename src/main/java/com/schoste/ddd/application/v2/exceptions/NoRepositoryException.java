@@ -18,6 +18,6 @@ public class NoRepositoryException extends ApplicationException
 	 */
 	public NoRepositoryException()
 	{
-		super(String.format(ResourceBundle.getBundle("exceptions").getString(NoRepositoryException.class.getSimpleName())));
+		super(String.format(ResourceBundle.getBundle("com.schoste.ddd.application.v2.exceptions.messages").getString(NoRepositoryException.class.getSimpleName())));
 	}
 }

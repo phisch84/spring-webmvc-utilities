@@ -26,7 +26,7 @@ public class EntityNotFoundException extends ApplicationException
 	 */
 	public EntityNotFoundException(Serializable id)
 	{
-		super(String.format(ResourceBundle.getBundle("exceptions").getString(EntityNotFoundException.class.getSimpleName()), id));
+		super(String.format(ResourceBundle.getBundle("com.schoste.ddd.application.v2.exceptions.messages").getString(EntityNotFoundException.class.getSimpleName()), id));
 
 		this.id = id;
 	}

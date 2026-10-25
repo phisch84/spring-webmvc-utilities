@@ -13,6 +13,9 @@ import com.schoste.ddd.domain.v3.entities.Entity;
  * A subclass adds the properties of the DTO. Setters annotated with {@link com.schoste.ddd.domain.v3.annotations.AutoSet}
  * are set automatically by a {@link DataTransferObjectConverter} from the corresponding getters of the entity,
  * and vice versa for the annotated setters of the entity.
+ * <p>
+ * The flags {@link DataTransferObject#isDeleted()} and {@link DataTransferObject#isAddedOrModified()} are a convention
+ * between a server and its clients: this library never reads or sets them.
  *
  * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  *
@@ -98,6 +101,7 @@ abstract public class DataTransferObject<ID extends Serializable> implements Ser
 	 * has been deleted on server side.
 	 * If sent from the client to the server, it usually means the client (user) requests
 	 * the deletion of the corresponding entity.
+	 * This library never reads or sets the flag.
 	 *
 	 * @return true if deleted, false otherwise. If null it isn't defined/set.
 	 */
@@ -111,6 +115,7 @@ abstract public class DataTransferObject<ID extends Serializable> implements Ser
 	 * has been deleted on server side.
 	 * If sent from the client to the server, it usually means the client (user) requests
 	 * the deletion of the corresponding entity.
+	 * This library never reads or sets the flag.
 	 *
 	 * @param deleted true if deleted, false otherwise
 	 */
@@ -124,6 +129,7 @@ abstract public class DataTransferObject<ID extends Serializable> implements Ser
 	 * has been added or was modified on server side. The client should update.
 	 * If sent from the client to the server, it usually means the client (user) requests
 	 * the creation of a new or the update of the corresponding entity.
+	 * This library never reads or sets the flag.
 	 *
 	 * @return true if added or modified, false otherwise. If null it isn't defined/set.
 	 */
@@ -137,6 +143,7 @@ abstract public class DataTransferObject<ID extends Serializable> implements Ser
 	 * has been added or was modified on server side. The client should update.
 	 * If sent from the client to the server, it usually means the client (user) requests
 	 * the creation of a new or the update of the corresponding entity.
+	 * This library never reads or sets the flag.
 	 *
 	 * @param addedOrModified true if added or modified, false otherwise
 	 */

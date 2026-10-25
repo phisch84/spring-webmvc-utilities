@@ -122,7 +122,7 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 	 *
 	 * {@inheritDoc}
 	 */
-	public E createEntity(DTO dataTransferObject) throws NoRepositoryException, EntityNotFoundException, ApplicationException
+	public E createEntity(DTO dataTransferObject) throws DomainException, NoRepositoryException, EntityNotFoundException, ApplicationException
 	{
 		try
 		{
@@ -140,7 +140,7 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 
 			return entity;
 		}
-		catch (ApplicationException e)
+		catch (DomainException | ApplicationException e)
 		{
 			throw e;
 		}
@@ -182,7 +182,7 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Collection<DTO> toDataTransferObjectsFromEntities(Collection<E> entities) throws ApplicationException
+	public Collection<DTO> toDataTransferObjectsFromEntities(Collection<E> entities) throws DomainException, ApplicationException
 	{
 		try
 		{
@@ -193,6 +193,10 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 			for (E entity : entities) dtos.add(this.toDataTransferObject(entity));
 
 			return dtos;
+		}
+		catch (DomainException | ApplicationException e)
+		{
+			throw e;
 		}
 		catch (Exception e)
 		{
@@ -215,6 +219,10 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 			for (Object[] param : params) dtos.add(this.toDataTransferObject(param));
 
 			return dtos;
+		}
+		catch (ApplicationException e)
+		{
+			throw e;
 		}
 		catch (Exception e)
 		{
@@ -244,6 +252,10 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 			for (DTO dto : dtos) results.add(this.fromDataTransferObject(dto));
 
 			return results;
+		}
+		catch (ApplicationException e)
+		{
+			throw e;
 		}
 		catch (Exception e)
 		{
@@ -284,12 +296,23 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 	 */
 	public Collection<E> toEntities(Collection<DTO> dtos) throws DomainException, ApplicationException
 	{
-		if (dtos == null) return null;
+		try
+		{
+			if (dtos == null) return null;
 
-		Collection<E> entities = new ArrayList<E>(dtos.size());
+			Collection<E> entities = new ArrayList<E>(dtos.size());
 
-		for (DTO dto : dtos) entities.add(this.toEntity(dto));
+			for (DTO dto : dtos) entities.add(this.toEntity(dto));
 
-		return entities;
+			return entities;
+		}
+		catch (DomainException | ApplicationException e)
+		{
+			throw e;
+		}
+		catch (Exception e)
+		{
+			throw new ApplicationException(e);
+		}
 	}
 }
