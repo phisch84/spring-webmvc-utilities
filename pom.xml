@@ -1,23 +1,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.schoste.ddd.application</groupId>
-    <artifactId>spring-webmvc-utilities</artifactId>
-    <version>0.3.RELEASE</version>
+    <artifactId>spring-webmvc-utilities2</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
     <name>Spring MVC Web Application Utilities</name>
     <url>https://www.schoste.com/</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.source.version>21</java.source.version>
-        <java.target.version>21</java.target.version>
+        <!-- compiles against the Java 8 API, even if built with a newer JDK (same baseline as dao and domain-repository) -->
+        <java.release.version>8</java.release.version>
         <maven.version>3.15.0</maven.version>
         <maven.jar-plugin.version>3.5.0</maven.jar-plugin.version>
         <maven.surfeire.version>3.5.5</maven.surfeire.version>
         <junit.version>4.13.2</junit.version>
-        <spring.version>7.0.7</spring.version>
-        <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
-        <ddd.dao.version>3.1.0.RELEASE</ddd.dao.version>
-        <ddd.domain-repository.version>2.1.0.RELEASE</ddd.domain-repository.version>
+        <!-- latest Spring version compatible with Java 8 (same as dao and domain-repository) -->
+        <spring.version>5.3.39</spring.version>
+        <!-- Servlet 4.0 (javax.servlet) is the version Spring 5.3 is built for -->
+        <javax.servlet.version>4.0.1</javax.servlet.version>
+        <ddd.dao.version>4.0.0-SNAPSHOT</ddd.dao.version>
+        <ddd.domain-repository.version>3.0.0-SNAPSHOT</ddd.domain-repository.version>
     </properties>
 
     <repositories>
@@ -28,22 +30,18 @@
     </repositories>
 
     <dependencies>
-        <dependency>
-            <groupId>com.schoste.ddd.infrastructure</groupId>
-            <artifactId>DAO</artifactId>
-            <version>${ddd.dao.version}</version>
-        </dependency>
+        <!-- brings dao4 along -->
         <dependency>
             <groupId>com.schoste.ddd.domain</groupId>
-            <artifactId>domain-repository</artifactId>
+            <artifactId>domain-repository3</artifactId>
             <version>${ddd.domain-repository.version}</version>
         </dependency>
 
         <!-- Servlet -->
         <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <version>${jakarta.servlet.version}</version>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>${javax.servlet.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -80,32 +78,24 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
             <version>${spring.version}</version>
             <scope>test</scope>
         </dependency>
-
+        <!-- AbstractInMemoryDAO for the test fixtures -->
         <dependency>
             <groupId>com.schoste.ddd.infrastructure</groupId>
-            <artifactId>DAO</artifactId>
+            <artifactId>dao4</artifactId>
             <version>${ddd.dao.version}</version>
             <classifier>tests</classifier>
             <type>test-jar</type>
-        </dependency>
-        <dependency>
-            <groupId>com.schoste.ddd.domain</groupId>
-            <artifactId>domain-repository</artifactId>
-            <version>${ddd.domain-repository.version}</version>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
-        <finalName>spring-webmvc-utilities</finalName>
         <pluginManagement>
             <plugins>
                 <!-- Build and compiler plugin configuration -->
@@ -114,8 +104,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven.version}</version>
                     <configuration>
-                        <source>${java.source.version}</source>
-                        <target>${java.target.version}</target>
+                        <release>${java.release.version}</release>
                     </configuration>
                 </plugin>
 

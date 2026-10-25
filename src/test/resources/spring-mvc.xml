@@ -11,7 +11,7 @@
     http://www.springframework.org/schema/mvc
     http://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
-    <context:component-scan base-package="com.schoste.ddd.application.v1.controller" />
+    <context:component-scan base-package="com.schoste.ddd.application.v2.controller" />
 
     <mvc:annotation-driven />
     <mvc:resources mapping="/resources/**" location="/resources/,/resources/default/" cache-period="31556926" />
@@ -21,7 +21,7 @@
         </bean>
         <mvc:interceptor>
         	<mvc:mapping path="/**"/><!-- intercept on all routes (/**) -->
-        	<bean class="com.schoste.ddd.application.v1.interceptor.AnnotationInterceptor"/>
+        	<bean class="com.schoste.ddd.application.v2.interceptor.AnnotationInterceptor"/>
         </mvc:interceptor>
     </mvc:interceptors>
 </beans>
