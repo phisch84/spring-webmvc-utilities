@@ -44,8 +44,9 @@ abstract public class DataTransferObject<ID extends Serializable> implements Ser
 
 	/**
 	 * Gets the id of the object.
-	 * Usually, if this id is an actual id, it relates to an entity with the same id.
-	 * If the id is null or virtual, it usually means there is no persisted entity yet.
+	 * If this id is an actual id, it relates to the entity with the same id.
+	 * If the id is null or virtual, it means there is no persisted entity yet: a virtual id the client made up
+	 * only identifies the DTO, and the entity created for it gets its own virtual id from the repository.
 	 *
 	 * @return the id of the entity
 	 */
@@ -56,8 +57,9 @@ abstract public class DataTransferObject<ID extends Serializable> implements Ser
 
 	/**
 	 * Sets the id of the object.
-	 * Usually, if this id is an actual id, it relates to an entity with the same id.
-	 * If the id is null or virtual, it usually means there is no persisted entity yet.
+	 * If this id is an actual id, it relates to the entity with the same id.
+	 * If the id is null or virtual, it means there is no persisted entity yet: a virtual id the client made up
+	 * only identifies the DTO, and the entity created for it gets its own virtual id from the repository.
 	 *
 	 * @param id the id of the entity
 	 */

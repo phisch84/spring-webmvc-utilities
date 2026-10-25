@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import com.schoste.ddd.application.v2.dtos.DataTransferObject;
 import com.schoste.ddd.application.v2.dtos.DataTransferObjectConverter;
 import com.schoste.ddd.application.v2.exceptions.ApplicationException;
+import com.schoste.ddd.application.v2.exceptions.EntityNotFoundException;
 import com.schoste.ddd.application.v2.exceptions.NoRepositoryException;
 import com.schoste.ddd.domain.v3.entities.Entity;
 import com.schoste.ddd.domain.v3.exceptions.DomainException;
@@ -77,11 +78,13 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 	abstract public DTO createDataTransferObject();
 
 	/**
-	 * Tries to create an entity from a repository.
-	 * If {@link DataTransferObjectConverterImpl#getRepository() returns null (i.e. because it was not implemented)
+	 * Gets or creates the entity of a DTO by the repository of {@link DataTransferObjectConverterImpl#getRepository()}.
+	 * If the repository returns null (i.e. because it was not implemented)
 	 * this method needs to be overwritten to create an entity.
+	 *
+	 * {@inheritDoc}
 	 */
-	public E createEntity(DTO dataTransferObject) throws NoRepositoryException, ApplicationException
+	public E createEntity(DTO dataTransferObject) throws NoRepositoryException, EntityNotFoundException, ApplicationException
 	{
 		try
 		{
@@ -90,11 +93,18 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 			if (repo == null) throw new NoRepositoryException();
 
 			ID id = dataTransferObject.getId();
-			E entity = ((id != null) && !repo.isVirtualId(id)) ?
-					repo.get(id) :
-					repo.createEntity();
+
+			if ((id == null) || repo.isVirtualId(id)) return repo.createEntity();
+
+			E entity = repo.get(id);
+
+			if (entity == null) throw new EntityNotFoundException(id);
 
 			return entity;
+		}
+		catch (ApplicationException e)
+		{
+			throw e;
 		}
 		catch (Exception e)
 		{
@@ -214,8 +224,6 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 
 			E entity = this.createEntity(dto);
 
-			entity.setId(dto.getId());
-
 			if (dto.getEntity() == null) dto.setEntity(entity);
 
 			super.convert(dto, entity);
@@ -223,7 +231,7 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 
 			return entity;
 		}
-		catch (DomainException e)
+		catch (DomainException | ApplicationException e)
 		{
 			throw e;
 		}
