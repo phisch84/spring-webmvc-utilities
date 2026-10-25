@@ -12,7 +12,7 @@ import com.schoste.ddd.application.v2.annotations.ExampleMethodAnnotation;
 /**
  * Example controller to test the {@link com.schoste.ddd.application.v2.interceptor.AnnotationInterceptor}
  * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 @Controller
 @ExampleClassAnnotation(exampleProperty = "Hello class")

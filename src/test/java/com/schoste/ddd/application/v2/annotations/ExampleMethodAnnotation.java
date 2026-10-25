@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Example annotation for a method
  * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, })

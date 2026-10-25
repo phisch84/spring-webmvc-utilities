@@ -14,6 +14,9 @@ public class EntityNotFoundException extends ApplicationException
 {
 	private static final long serialVersionUID = -2350834419517930468L;
 
+	/**
+	 * The id of the entity which wasn't found
+	 */
 	private final Serializable id;
 
 	/**

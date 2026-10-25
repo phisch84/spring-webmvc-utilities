@@ -10,7 +10,7 @@ import com.schoste.ddd.application.v2.interceptor.GenericAnnotationPreHandler;
 /**
  * Example implementation of a handler for the {@link ExampleClassAnnotation} annotation.
  * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 public class ExampleClassAnnotationPreHandler extends GenericAnnotationPreHandler<ExampleClassAnnotation> implements ExampleClassAnnotation
 {

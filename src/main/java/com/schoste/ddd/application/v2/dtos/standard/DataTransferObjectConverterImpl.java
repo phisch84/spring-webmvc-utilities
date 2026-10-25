@@ -17,10 +17,43 @@ import com.schoste.ddd.domain.v3.exceptions.DomainException;
 import com.schoste.ddd.domain.v3.services.GenericRepository;
 import com.schoste.ddd.domain.v3.services.standard.AutoObjectConverterImpl;
 
+/**
+ * Standard implementation of the {@link DataTransferObjectConverter}: the base class of converters.
+ * <p>
+ * Properties are converted by the {@link AutoObjectConverterImpl} of domain-repository: every setter of the destination
+ * (the DTO when converting an entity, the entity when converting a DTO) which is annotated with
+ * {@link com.schoste.ddd.domain.v3.annotations.AutoSet} is set from the corresponding getter of the source.
+ * Instances the annotation asks for (by class or class name) are beans of the Spring application context.
+ * Everything which can't be converted automatically is up to the hooks
+ * {@link DataTransferObjectConverterImpl#afterAutoConversion(Entity, DataTransferObject)} and
+ * {@link DataTransferObjectConverterImpl#afterAutoConversion(DataTransferObject, Entity)}.
+ * <p>
+ * An implementing class must be a bean of a Spring application context (it gets the context injected) and implement
+ * {@link DataTransferObjectConverterImpl#getRepository()}, {@link DataTransferObjectConverter#createDataTransferObject()},
+ * {@link DataTransferObjectConverter#toDataTransferObject(Object...)},
+ * {@link DataTransferObjectConverter#fromDataTransferObject(DataTransferObject)} and both hooks.
+ *
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
+ *
+ * @param <ID> the class of the ids of the entities and DTOs
+ * @param <E> the class of the entities
+ * @param <DTO> the class of the data transfer objects
+ */
 abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E extends Entity<ID>, DTO extends DataTransferObject<ID>> extends AutoObjectConverterImpl implements DataTransferObjectConverter<ID, E, DTO>
 {
+	/**
+	 * The application context instances for {@link com.schoste.ddd.domain.v3.annotations.AutoSet} are taken from
+	 */
 	@Autowired
 	protected ApplicationContext applicationContext;
+
+	/**
+	 * Creates the converter; the application context is injected afterwards
+	 */
+	protected DataTransferObjectConverterImpl()
+	{
+		super();
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -41,14 +74,18 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 	}
 
 	/**
-	 * To be implemented by the extending class:
+	 * To be implemented by the extending class: gets the repository entities are taken from and created by.
+	 * If it returns null, {@link DataTransferObjectConverterImpl#createEntity(DataTransferObject)} throws
+	 * {@link NoRepositoryException} unless it is overridden.
 	 *
 	 * @return the repository of the entity
 	 */
 	abstract protected GenericRepository<ID, E, ?> getRepository();
 
 	/**
-	 * Called after a data transfer object (DTO) was automatically created from an entity.
+	 * Called after a data transfer object (DTO) was automatically created from an entity, e.g. to set properties
+	 * which can't be converted automatically.
+	 * The DTO's id and entity are already set.
 	 *
 	 * @param sourceEntity the entity from which the DTO was created
 	 * @param destinationDataTransferObject the DTO which was created from the entity
@@ -56,7 +93,8 @@ abstract public class DataTransferObjectConverterImpl<ID extends Serializable, E
 	abstract protected void afterAutoConversion(E sourceEntity, DTO destinationDataTransferObject);
 
 	/**
-	 * Called after an entity was automatically created from a data transfer object (DTO).
+	 * Called after an entity was automatically created or obtained for a data transfer object (DTO) and its properties
+	 * were set from the DTO, e.g. to set properties which can't be converted automatically.
 	 *
 	 * @param sourceDataTransferObject the DTO from which the entity was created
 	 * @param destinationEntity the entity which was created from the DTO

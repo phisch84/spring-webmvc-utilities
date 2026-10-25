@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Spring MVC Web Application Utilities 2</title></head>
+<body>
+<p>Spring MVC Web Application Utilities 2: the application layer between Spring MVC controllers and the repositories of the
+{@code domain-repository3} library. It converts entities to data transfer objects (DTOs) and back, and it executes handlers
+for custom annotations of controllers.</p>
+
+<h1>Where to start</h1>
+<ul>
+<li><b>Exchanging entities with clients:</b> {@link com.schoste.ddd.application.v2.dtos.DataTransferObject} and
+{@link com.schoste.ddd.application.v2.dtos.DataTransferObjectConverter}.</li>
+<li><b>Writing a converter:</b> {@link com.schoste.ddd.application.v2.dtos.standard.DataTransferObjectConverterImpl};
+the package {@link com.schoste.ddd.application.v2.dtos.standard} shows a complete example.</li>
+<li><b>Handling custom annotations:</b> {@link com.schoste.ddd.application.v2.interceptor.AnnotationInterceptor} and the
+handler base classes; the package {@link com.schoste.ddd.application.v2.interceptor} shows a complete example.</li>
+<li><b>Exceptions:</b> {@link com.schoste.ddd.application.v2.exceptions}.</li>
+</ul>
+
+<h1>Rules in brief</h1>
+<ul>
+<li>A DTO refers to its entity by id. A null or virtual id means a new entity; an actual id means the repository's entity
+with this id, and if there is none, {@link com.schoste.ddd.application.v2.exceptions.EntityNotFoundException} is thrown.</li>
+<li>Converting never changes the id of a DTO or assigns it to an entity: entity ids are managed by the repository.</li>
+<li>Converting never adds an entity to its repository or saves it; that's up to the caller and a Unit of Work.</li>
+<li>Properties are converted automatically by the setters annotated with
+{@link com.schoste.ddd.domain.v3.annotations.AutoSet}; the rest is done in hooks of the converter.</li>
+<li>Converters and annotation handlers are Spring beans; the interceptor finds the handler of an annotation as the bean of
+the annotation type. Annotations without handler are ignored, and requests of static resources pass unhandled.</li>
+</ul>
+
+<h1>Compatibility</h1>
+<p>Compiled for Java 8. Needs Spring 5.3 and Servlet 4.0 ({@code javax.servlet}), which the web application provides.
+The major version is part of the artifact id ({@code spring-webmvc-utilities2}) and of the package name
+({@code com.schoste.ddd.application.v2}).</p>
+</body>
+</html>

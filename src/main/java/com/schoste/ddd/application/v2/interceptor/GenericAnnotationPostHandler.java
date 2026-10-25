@@ -8,17 +8,23 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
 
 /**
- * Base class for annotation handlers which are fired after a request was processed.
- * There should be one handler for each annotation that implements this class.
- * Annotation handlers should be singletons.
- * Annotation handlers can be sorted by priority, starting with the lowest.
- * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * Base class for annotation handlers which are executed by the {@link AnnotationInterceptor} after a request was processed
+ * (and before the view is rendered).
+ * <p>
+ * Implement one handler for each annotation: extend this class with the annotation as type argument, implement the
+ * annotation's interface as well (that's how the interceptor finds the handler; its annotation methods are never called),
+ * and register the handler as singleton bean in the application context of the interceptor.
+ * Handlers are executed by their priority, starting with the lowest number.
+ *
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  *
  * @param <T> the annotation/interface the handler is defined for
  */
 abstract public class GenericAnnotationPostHandler<T extends Annotation> extends java.text.Annotation implements Comparable<GenericAnnotationPostHandler<?>>
 {
+	/**
+	 * The execution priority of the handler; handlers with lower numbers are executed first
+	 */
 	protected int priority=0;
 
 	/**

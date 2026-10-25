@@ -22,9 +22,9 @@ import com.schoste.ddd.domain.v3.services.GenericRepository;
 import com.schoste.ddd.domain.v3.services.UnitOfWork;
 
 /**
- * Test suite for the version 1 implementation of <@see DataTransferObjectConverter>
+ * Test suite for {@link DataTransferObjectConverterImpl}
  * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 abstract public class DataTransferObjectConverterImplTestSuite
 {

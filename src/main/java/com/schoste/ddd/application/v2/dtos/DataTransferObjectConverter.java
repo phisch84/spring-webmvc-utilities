@@ -10,9 +10,13 @@ import com.schoste.ddd.domain.v3.entities.Entity;
 import com.schoste.ddd.domain.v3.exceptions.DomainException;
 
 /**
- * Interface to the version 2 Entity <-> Data Transfer Object converter.
- * Extend interfaces of implementing classes with this one and define concrete parameters
- * and results.
+ * Converter between entities and data transfer objects (DTOs) of one class each.
+ * Extend this interface with one for a concrete entity and DTO, which may add methods to create DTOs from
+ * typed parameters, and implement it by extending
+ * {@link com.schoste.ddd.application.v2.dtos.standard.DataTransferObjectConverterImpl}.
+ * <p>
+ * Converting a DTO to an entity never adds the entity to its repository or saves it: the caller decides what
+ * happens to the entity (e.g. by adding it to the repository and committing a unit of work).
  *
  * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  *
@@ -23,7 +27,7 @@ import com.schoste.ddd.domain.v3.exceptions.DomainException;
 public interface DataTransferObjectConverter<ID extends Serializable, E extends Entity<ID>, DTO extends DataTransferObject<ID>>
 {
 	/**
-	 * Creates an instance of a new data transfer object
+	 * Creates an instance of a new data transfer object without id and entity
 	 *
 	 * @return an instance of a new data transfer object
 	 */
@@ -52,9 +56,11 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	E createEntity(DTO dataTransferObject) throws NoRepositoryException, EntityNotFoundException, ApplicationException;
 
 	/**
-	 * Creates a data transfer object from a given entity
+	 * Creates a data transfer object (DTO) from a given entity:
+	 * creates a new DTO (see {@link DataTransferObjectConverter#createDataTransferObject()}), sets its properties from
+	 * the entity, its id to the id of the entity, and its entity to the given entity.
 	 *
-	 * @param entity the entity to convert to the data transfer object
+	 * @param entity the entity to convert to the data transfer object; must not be null
 	 * @return the DTO
 	 * @throws DomainException re-throws every exception from the domain layer
 	 * @throws ApplicationException re-throws other exceptions as application exceptions
@@ -62,47 +68,52 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	DTO toDataTransferObject(E entity) throws DomainException, ApplicationException;
 
 	/**
-	 * Creates data transfer objects from a list of given entities
+	 * Creates data transfer objects (DTOs) from given entities, each as by
+	 * {@link DataTransferObjectConverter#toDataTransferObject(Entity)}
 	 *
-	 * @param param the list of given entities
-	 * @return the DTOs. The output is in the order of the input.
-	 * @throws ApplicationException re-throws other exceptions as application exceptions
+	 * @param entities the entities to convert; none of them may be null
+	 * @return the DTOs in the order of the entities, or null if entities is null
+	 * @throws ApplicationException re-throws every exception as application exception,
+	 * including those of the domain layer
 	 */
 	Collection<DTO> toDataTransferObjectsFromEntities(Collection<E> entities) throws ApplicationException;
 
 	/**
-	 * Creates a data transfer object from given parameters
+	 * Creates a data transfer object (DTO) from given parameters, without entity.
+	 * The meaning of the parameters is defined by the implementing class; it usually offers a typed method as well.
 	 *
 	 * @param param the parameters used to create the DTO
-	 * @return the DTO
+	 * @return the DTO, or null if param is null
 	 * @throws ApplicationException re-throws other exceptions as application exceptions
 	 */
 	DTO toDataTransferObject(Object...param) throws ApplicationException;
 
 	/**
-	 * Creates data transfer objects from a list of given parameters
+	 * Creates data transfer objects (DTOs) from lists of given parameters, each as by
+	 * {@link DataTransferObjectConverter#toDataTransferObject(Object...)}
 	 *
-	 * @param param the list of parameters to create the DTOs
-	 * @return the DTOs. The output is in the order of the input.
-	 * @throws ApplicationException re-throws other exceptions as application exceptions
+	 * @param params the parameters of each DTO
+	 * @return the DTOs in the order of the parameters, or null if params is null
+	 * @throws ApplicationException re-throws every exception as application exception
 	 */
 	Collection<DTO> toDataTransferObjects(Collection<Object[]> params) throws ApplicationException;
 
 	/**
-	 * Processes a given data transfer object
+	 * Converts a given data transfer object (DTO) to a result defined by the implementing class,
+	 * e.g. the parameters {@link DataTransferObjectConverter#toDataTransferObject(Object...)} would create it from
 	 *
 	 * @param dto the data transfer object to process
-	 * @return a result of the process
+	 * @return the result of the DTO
 	 * @throws ApplicationException re-throws other exceptions as application exceptions
 	 */
 	Object fromDataTransferObject(DTO dto) throws ApplicationException;
 
 	/**
-	 * Processes given data transfer objects
+	 * Converts given data transfer objects (DTOs), each as by {@link DataTransferObjectConverter#fromDataTransferObject(DataTransferObject)}
 	 *
 	 * @param dtos the data transfer objects to process
-	 * @return a result of the process of each DTO. The output is in the order of the input.
-	 * @throws ApplicationException re-throws other exceptions as application exceptions
+	 * @return the results in the order of the DTOs, or null if dtos is null
+	 * @throws ApplicationException re-throws every exception as application exception
 	 */
 	Collection<Object> fromDataTransferObjects(Collection<DTO> dtos) throws ApplicationException;
 
@@ -110,14 +121,13 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	 * Converts a given data transfer object (DTO) to an entity:
 	 * gets or creates the entity of the DTO (see {@link DataTransferObjectConverter#createEntity(DataTransferObject)})
 	 * and sets its properties from the DTO.
-	 * If {@see DataTransferObject#getEntity()} returns null for the provided DTO
-	 * then {@see DataTransferObject#setEntity(Entity)} will be called with
-	 * the entity as parameter that was created or obtained for the DTO.
+	 * If {@link DataTransferObject#getEntity()} returns null for the provided DTO
+	 * then {@link DataTransferObject#setEntity(Entity)} will be called with
+	 * the entity that was created or obtained for the DTO.
 	 * The id of the DTO isn't changed, and the entity isn't added to the repository.
 	 *
 	 * @param dto the DTO to create the entity from
 	 * @return the entity which was created from the DTO, or null if dto is null
-	 * @throws Exception re-throws every exception
 	 * @throws DomainException re-throws every exception from the domain layer
 	 * @throws EntityNotFoundException thrown if the DTO refers to an entity which the repository doesn't provide
 	 * (see {@link DataTransferObjectConverter#createEntity(DataTransferObject)})
@@ -126,13 +136,15 @@ public interface DataTransferObjectConverter<ID extends Serializable, E extends 
 	E toEntity(DTO dto) throws DomainException, EntityNotFoundException, ApplicationException;
 
 	/**
-	 * Converts a given list of data transfer objects (DTOs) to a list of entities
+	 * Converts given data transfer objects (DTOs) to entities, each as by
+	 * {@link DataTransferObjectConverter#toEntity(DataTransferObject)}.
+	 * The conversion stops at the first DTO which fails; the entities of the DTOs before stay as they were converted.
 	 *
 	 * @param dtos the DTOs to create the entities from
-	 * @return the entities which were created from the DTOs
-	 * @throws Exception re-throws every exception
+	 * @return the entities in the order of the DTOs, or null if dtos is null
 	 * @throws DomainException re-throws every exception from the domain layer
+	 * @throws EntityNotFoundException thrown if a DTO refers to an entity which the repository doesn't provide
 	 * @throws ApplicationException re-throws other exceptions as application exceptions
 	 */
-	Collection<E> toEntities(Collection<DTO> dtos) throws DomainException, ApplicationException;
+	Collection<E> toEntities(Collection<DTO> dtos) throws DomainException, EntityNotFoundException, ApplicationException;
 }

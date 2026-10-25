@@ -23,7 +23,7 @@ import com.schoste.ddd.application.v2.controller.TestController;
 /**
  * Test class for {@link AnnotationInterceptor}
  * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 @ContextConfiguration(locations = {
 		"file:src/test/resources/spring-mvc.xml",

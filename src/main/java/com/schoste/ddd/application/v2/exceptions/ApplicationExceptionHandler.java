@@ -1,18 +1,18 @@
 package com.schoste.ddd.application.v2.exceptions;
 
 /**
- * Version 1 interface to a handler of {@see ApplicationException}
- * If there is an implementation and the instance is set at {@see ApplicationException#handler}, this handler is
- * called whenever a {@see ApplicationException} is created.
- * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * Handler of {@link ApplicationException}s.
+ * If an implementation is set at {@link ApplicationException#handler}, it is
+ * called whenever an {@link ApplicationException} is created.
  *
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 public interface ApplicationExceptionHandler
 {
 	/**
-	 * Called by constructors of {@see ApplicationException}
-	 * 
+	 * Called by the constructors of {@link ApplicationException}, i.e. before the constructor of a subclass has finished.
+	 * Exceptions thrown by this method are printed to {@link System#err} and don't propagate.
+	 *
 	 * @param exception the exception that was created
 	 */
 	void onExceptionCreated(ApplicationException exception);

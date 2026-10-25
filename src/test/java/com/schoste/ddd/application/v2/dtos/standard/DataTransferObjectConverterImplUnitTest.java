@@ -12,9 +12,9 @@ import com.schoste.ddd.application.v2.testfixtures.ExampleRepository;
 import com.schoste.ddd.domain.v3.services.UnitOfWork;
 
 /**
- * Unit tests for the version 1 implementation of <@see DataTransferObjectConverter>
+ * Unit tests for {@link DataTransferObjectConverterImpl}
  * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 @ContextConfiguration(locations = {
 		"file:src/test/resources/unittest-beans.xml",

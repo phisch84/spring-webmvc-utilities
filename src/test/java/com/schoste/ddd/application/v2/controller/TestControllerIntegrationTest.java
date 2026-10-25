@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
  * Integration tests for the {@link com.schoste.ddd.application.v2.interceptor.AnnotationInterceptor}
  * working on the {@link TestController}
  * 
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 @ContextConfiguration(locations = {
 		"file:src/test/resources/spring-mvc.xml",

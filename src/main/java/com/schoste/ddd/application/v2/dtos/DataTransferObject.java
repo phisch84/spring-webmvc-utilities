@@ -6,7 +6,13 @@ import java.io.Serializable;
 import com.schoste.ddd.domain.v3.entities.Entity;
 
 /**
- * Version 2 of the basic properties of a DTO
+ * Base class of data transfer objects (DTOs): the objects a web application exchanges with its clients instead of entities.
+ * A DTO refers to its entity by the entity's id (see {@link DataTransferObject#getId()}), and it can hold the entity itself
+ * while it is processed on the server (see {@link DataTransferObject#getEntity()}), which is never serialized.
+ * <p>
+ * A subclass adds the properties of the DTO. Setters annotated with {@link com.schoste.ddd.domain.v3.annotations.AutoSet}
+ * are set automatically by a {@link DataTransferObjectConverter} from the corresponding getters of the entity,
+ * and vice versa for the annotated setters of the entity.
  *
  * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  *
@@ -17,9 +23,28 @@ abstract public class DataTransferObject<ID extends Serializable> implements Ser
 	private static final long serialVersionUID = 5290146275262596247L;
 
 	private transient Entity<ID> entity;
+
+	/**
+	 * The id of the entity the DTO refers to
+	 */
 	private ID id;
+
+	/**
+	 * Whether the entity is (to be) deleted; null if not set
+	 */
 	private Boolean deleted;
+
+	/**
+	 * Whether the entity is (to be) added or modified; null if not set
+	 */
 	private Boolean addedOrModified;
+
+	/**
+	 * Creates a DTO without id and entity
+	 */
+	protected DataTransferObject()
+	{
+	}
 
 	/**
 	 * Gets the entity that belongs to this DTO or null if none is related or set

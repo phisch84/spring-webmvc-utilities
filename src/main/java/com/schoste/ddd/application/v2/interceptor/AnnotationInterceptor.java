@@ -21,25 +21,62 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * Version 1 implementation of the handler interceptor to handle
- * custom annotations with {@link GenericAnnotationPreHandler}
- *  
- * @author Philipp Schosteritsch <s.philipp@schoste.com>
+ * Spring MVC handler interceptor which executes handlers for the custom annotations of controllers and their methods.
+ * <p>
+ * For every request of a controller method, the interceptor collects the annotations of the controller class and of the
+ * method, and executes the handler of each annotation which has one:
+ * {@link GenericAnnotationPreHandler}s before the request is processed and {@link GenericAnnotationPostHandler}s after it
+ * was processed, each ordered by their priority, starting with the lowest number. Handlers with equal priority are executed
+ * in undefined order. If an annotation is present on both the class and the method, its handler is executed once,
+ * with the method's annotation. Requests of other handlers (e.g. static resources) are processed without executing any
+ * handlers.
+ * <p>
+ * The handler of an annotation is the bean of the interceptor's application context which is found by the annotation
+ * type, i.e. a singleton bean which extends one of the handler base classes and implements the annotation's interface.
+ * If there is no such bean, or it can't be determined unambiguously, the annotation is ignored.
+ * Since a bean can't extend both base classes, an annotation has either a pre or a post handler.
+ * The handlers found are cached by the interceptor; it is safe to use with concurrent requests.
+ * <p>
+ * Register the interceptor e.g. by {@code <mvc:interceptors>} in the Spring MVC configuration, so that it gets the
+ * application context injected.
  *
+ * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
 public class AnnotationInterceptor implements HandlerInterceptor
 {
+	/**
+	 * The application context the handlers are looked up in
+	 */
 	@Autowired
 	protected ApplicationContext context;
-	
+
 	/*
 	 * The caches belong to the interceptor, since the handlers are beans of its application context.
 	 * They are accessed by concurrent requests. An empty Optional caches that no handler was found.
 	 */
+
+	/**
+	 * Cache of the class and method annotations of each handler method
+	 */
 	protected final Map<HandlerMethod, Collection<Annotation>> annotationsForMethods = new ConcurrentHashMap<>();
+
+	/**
+	 * Cache of the pre handler of each annotation type; empty if it has none
+	 */
 	protected final Map<Class<?>, Optional<GenericAnnotationPreHandler<?>>> preHandlersForAnnotations = new ConcurrentHashMap<>();
+
+	/**
+	 * Cache of the post handler of each annotation type; empty if it has none
+	 */
 	protected final Map<Class<?>, Optional<GenericAnnotationPostHandler<?>>> postHandlersForAnnotations = new ConcurrentHashMap<>();
-	
+
+	/**
+	 * Creates the interceptor; the application context is injected afterwards
+	 */
+	public AnnotationInterceptor()
+	{
+	}
+
 	/**
 	 * Gets class and method annotations for a given handler method.
 	 * All annotations for a method are cached to avoid redundant look ups
@@ -171,6 +208,8 @@ public class AnnotationInterceptor implements HandlerInterceptor
 	 * Executes registered handlers ({@link GenericAnnotationPreHandler})
 	 * for each annotation of a handler method by their priority
 	 * and before the request is processed, starting with the lowest priority number.
+	 * As soon as a handler returns false, no further handlers are executed and the request is discarded;
+	 * that handler is responsible for the response.
 	 * 
 	 * @param request the server's request object
 	 * @param response the server's response object
@@ -198,9 +237,10 @@ public class AnnotationInterceptor implements HandlerInterceptor
 	}
 
 	/**
-	 * Executes registered handlers ({@link GenericAnnotationPreHandler})
+	 * Executes registered handlers ({@link GenericAnnotationPostHandler})
 	 * for each annotation of a handler method by their priority, after
 	 * the request was processed, starting with the lowest priority number.
+	 * As soon as a handler returns false, no further handlers are executed.
 	 * 
 	 * @param request the server's request object
 	 * @param response the server's response object
