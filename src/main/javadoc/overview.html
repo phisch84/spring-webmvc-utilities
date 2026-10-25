@@ -25,8 +25,10 @@ with this id, and if there is none, {@link com.schoste.ddd.application.v2.except
 <li>Converting never adds an entity to its repository or saves it; that's up to the caller and a Unit of Work.</li>
 <li>Properties are converted automatically by the setters annotated with
 {@link com.schoste.ddd.domain.v3.annotations.AutoSet}; the rest is done in hooks of the converter.</li>
-<li>Converters and annotation handlers are Spring beans; the interceptor finds the handler of an annotation as the bean of
-the annotation type. Annotations without handler are ignored, and requests of static resources pass unhandled.</li>
+<li>Converters and annotation handlers are Spring beans. A project adds its own annotations by writing handlers which
+extend a handler base class with the annotation as type argument; an annotation may have several pre and post handlers.
+Annotations without handlers are ignored, requests of static resources pass unhandled, and configuration errors
+(an unresolvable handler, an interceptor without application context) fail with an {@link java.lang.IllegalStateException}.</li>
 </ul>
 
 <h1>Compatibility</h1>

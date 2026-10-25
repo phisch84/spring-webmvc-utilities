@@ -11,16 +11,20 @@ import org.springframework.web.servlet.ModelAndView;
  * Base class for annotation handlers which are executed by the {@link AnnotationInterceptor} after a request was processed
  * (and before the view is rendered).
  * <p>
- * Implement one handler for each annotation: extend this class with the annotation as type argument, implement the
- * annotation's interface as well (that's how the interceptor finds the handler; its annotation methods are never called),
- * and register the handler as singleton bean in the application context of the interceptor.
+ * To handle an annotation of a project, extend this class with the annotation as type argument, implement
+ * {@link GenericAnnotationPostHandler#handle(Annotation, HttpServletRequest, HttpServletResponse, ModelAndView)}, and register
+ * the handler as a singleton bean in the application context of the interceptor (or a parent context); its bean id doesn't
+ * matter. The type argument tells the interceptor which annotation the handler belongs to (see
+ * {@link GenericAnnotationPostHandler#getAnnotationType()}); an intermediate generic base class is fine, as long as the
+ * class of the handler binds the type argument to a concrete annotation.
+ * An annotation may have several post handlers, and pre handlers as well (see {@link GenericAnnotationPreHandler}).
  * Handlers are executed by their priority, starting with the lowest number.
  *
  * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  *
- * @param <T> the annotation/interface the handler is defined for
+ * @param <T> the annotation the handler is defined for
  */
-abstract public class GenericAnnotationPostHandler<T extends Annotation> extends java.text.Annotation implements Comparable<GenericAnnotationPostHandler<?>>
+abstract public class GenericAnnotationPostHandler<T extends Annotation> implements Comparable<GenericAnnotationPostHandler<?>>
 {
 	/**
 	 * The execution priority of the handler; handlers with lower numbers are executed first
@@ -32,17 +36,18 @@ abstract public class GenericAnnotationPostHandler<T extends Annotation> extends
 	 */
 	public GenericAnnotationPostHandler()
 	{
-		super(null);
 	}
 
 	/**
-	 * Unused implementation of {@link java.lang.annotation.Annotation#annotationType()}
-	 * 
-	 * @return null
+	 * Gets the annotation the handler is defined for: the type argument of this class, as bound by the class of the handler.
+	 * Override it only if the type argument can't be determined from the class (e.g. because the handler class is generic).
+	 *
+	 * @return the annotation type
+	 * @throws IllegalStateException thrown if the class of the handler doesn't bind the type argument to a concrete annotation
 	 */
-	public Class<? extends java.lang.annotation.Annotation> annotationType()
+	public Class<? extends Annotation> getAnnotationType() throws IllegalStateException
 	{
-		return null;
+		return AnnotationTypes.of(this, GenericAnnotationPostHandler.class);
 	}
 
 	/**

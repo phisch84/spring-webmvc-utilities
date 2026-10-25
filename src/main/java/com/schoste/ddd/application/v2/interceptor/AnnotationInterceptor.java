@@ -8,12 +8,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.method.HandlerMethod;
@@ -24,18 +24,19 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * Spring MVC handler interceptor which executes handlers for the custom annotations of controllers and their methods.
  * <p>
  * For every request of a controller method, the interceptor collects the annotations of the controller class and of the
- * method, and executes the handler of each annotation which has one:
+ * method, and executes the handlers of each annotation which has some:
  * {@link GenericAnnotationPreHandler}s before the request is processed and {@link GenericAnnotationPostHandler}s after it
  * was processed, each ordered by their priority, starting with the lowest number. Handlers with equal priority are executed
- * in undefined order. If an annotation is present on both the class and the method, its handler is executed once,
+ * in undefined order. If an annotation is present on both the class and the method, each of its handlers is executed once,
  * with the method's annotation. Requests of other handlers (e.g. static resources) are processed without executing any
  * handlers.
  * <p>
- * The handler of an annotation is the bean of the interceptor's application context which is found by the annotation
- * type, i.e. a singleton bean which extends one of the handler base classes and implements the annotation's interface.
- * If there is no such bean, or it can't be determined unambiguously, the annotation is ignored.
- * Since a bean can't extend both base classes, an annotation has either a pre or a post handler.
- * The handlers found are cached by the interceptor; it is safe to use with concurrent requests.
+ * The handlers are the beans of the interceptor's application context and its ancestors which extend one of the handler
+ * base classes; the type argument of the base class is the annotation the handler belongs to. They are collected on the
+ * first request. An annotation may have any number of pre and post handlers; annotations without handlers are ignored.
+ * If the annotation of a handler can't be determined, or the interceptor has no application context, every request fails
+ * with an {@link IllegalStateException} which names the cause.
+ * The interceptor is safe to use with concurrent requests.
  * <p>
  * Register the interceptor e.g. by {@code <mvc:interceptors>} in the Spring MVC configuration, so that it gets the
  * application context injected.
@@ -52,7 +53,7 @@ public class AnnotationInterceptor implements HandlerInterceptor
 
 	/*
 	 * The caches belong to the interceptor, since the handlers are beans of its application context.
-	 * They are accessed by concurrent requests. An empty Optional caches that no handler was found.
+	 * They are accessed by concurrent requests: the handler maps are never changed once they are set.
 	 */
 
 	/**
@@ -61,14 +62,14 @@ public class AnnotationInterceptor implements HandlerInterceptor
 	protected final Map<HandlerMethod, Collection<Annotation>> annotationsForMethods = new ConcurrentHashMap<>();
 
 	/**
-	 * Cache of the pre handler of each annotation type; empty if it has none
+	 * The pre handlers of each annotation type, collected on the first request; null before
 	 */
-	protected final Map<Class<?>, Optional<GenericAnnotationPreHandler<?>>> preHandlersForAnnotations = new ConcurrentHashMap<>();
+	protected volatile Map<Class<? extends Annotation>, List<GenericAnnotationPreHandler<?>>> preHandlersForAnnotations = null;
 
 	/**
-	 * Cache of the post handler of each annotation type; empty if it has none
+	 * The post handlers of each annotation type, collected on the first request; null before
 	 */
-	protected final Map<Class<?>, Optional<GenericAnnotationPostHandler<?>>> postHandlersForAnnotations = new ConcurrentHashMap<>();
+	protected volatile Map<Class<? extends Annotation>, List<GenericAnnotationPostHandler<?>>> postHandlersForAnnotations = null;
 
 	/**
 	 * Creates the interceptor; the application context is injected afterwards
@@ -101,78 +102,111 @@ public class AnnotationInterceptor implements HandlerInterceptor
 	}
 
 	/**
-	 * Looks up the pre handler of an annotation in the application context
+	 * Gets the application context the handlers are collected from
 	 *
-	 * @param annotationType the annotation to find the handler for
-	 * @return the handler, or an empty Optional if there is none
+	 * @return the application context
+	 * @throws IllegalStateException thrown if the interceptor has no application context, i.e. it wasn't created by Spring
 	 */
-	protected Optional<GenericAnnotationPreHandler<?>> findPreHandler(Class<?> annotationType)
+	protected ApplicationContext getContext() throws IllegalStateException
 	{
-		try
-		{
-			return Optional.of((GenericAnnotationPreHandler<?>) this.context.getBean(annotationType));
-		}
-		catch (Exception e)
-		{
-			return Optional.empty();
-		}
+		if (this.context == null) throw new IllegalStateException("The AnnotationInterceptor has no application context: it must be created by Spring, e.g. by <mvc:interceptors>");
+
+		return this.context;
 	}
 
 	/**
-	 * Looks up the post handler of an annotation in the application context
+	 * Gets the pre handlers of each annotation type. They are collected once from the application context and its
+	 * ancestors: every bean which extends {@link GenericAnnotationPreHandler}, assigned to its annotation type.
 	 *
-	 * @param annotationType the annotation to find the handler for
-	 * @return the handler, or an empty Optional if there is none
+	 * @return the pre handlers of each annotation type which has some
+	 * @throws IllegalStateException thrown if the interceptor has no application context, or if the annotation of a handler
+	 * can't be determined (see {@link GenericAnnotationPreHandler#getAnnotationType()})
 	 */
-	protected Optional<GenericAnnotationPostHandler<?>> findPostHandler(Class<?> annotationType)
+	protected Map<Class<? extends Annotation>, List<GenericAnnotationPreHandler<?>>> getPreHandlers() throws IllegalStateException
 	{
-		try
+		Map<Class<? extends Annotation>, List<GenericAnnotationPreHandler<?>>> handlers = this.preHandlersForAnnotations;
+
+		if (handlers == null)
 		{
-			return Optional.of((GenericAnnotationPostHandler<?>) this.context.getBean(annotationType));
+			// concurrent first requests may collect the handlers more than once, with the same result
+			handlers = new HashMap<>();
+
+			for (GenericAnnotationPreHandler<?> handler : BeanFactoryUtils.beansOfTypeIncludingAncestors(this.getContext(), GenericAnnotationPreHandler.class).values())
+			{
+				handlers.computeIfAbsent(handler.getAnnotationType(), annotationType -> new ArrayList<>()).add(handler);
+			}
+
+			this.preHandlersForAnnotations = handlers;
 		}
-		catch (Exception e)
-		{
-			return Optional.empty();
-		}
+
+		return handlers;
 	}
 
 	/**
-	 * Loads and caches pre handlers for given annotations. If a handler is found for an annotation
-	 * it is cached. The instances of the handlers are then mapped to the corresponding annotations.
-	 * 
+	 * Gets the post handlers of each annotation type. They are collected once from the application context and its
+	 * ancestors: every bean which extends {@link GenericAnnotationPostHandler}, assigned to its annotation type.
+	 *
+	 * @return the post handlers of each annotation type which has some
+	 * @throws IllegalStateException thrown if the interceptor has no application context, or if the annotation of a handler
+	 * can't be determined (see {@link GenericAnnotationPostHandler#getAnnotationType()})
+	 */
+	protected Map<Class<? extends Annotation>, List<GenericAnnotationPostHandler<?>>> getPostHandlers() throws IllegalStateException
+	{
+		Map<Class<? extends Annotation>, List<GenericAnnotationPostHandler<?>>> handlers = this.postHandlersForAnnotations;
+
+		if (handlers == null)
+		{
+			// concurrent first requests may collect the handlers more than once, with the same result
+			handlers = new HashMap<>();
+
+			for (GenericAnnotationPostHandler<?> handler : BeanFactoryUtils.beansOfTypeIncludingAncestors(this.getContext(), GenericAnnotationPostHandler.class).values())
+			{
+				handlers.computeIfAbsent(handler.getAnnotationType(), annotationType -> new ArrayList<>()).add(handler);
+			}
+
+			this.postHandlersForAnnotations = handlers;
+		}
+
+		return handlers;
+	}
+
+	/**
+	 * Gets the pre handlers of given annotations, mapped to the annotation each handler is executed with.
+	 * A handler of an annotation which is given twice (on the class and the method) is mapped to the later one.
+	 *
 	 * @param annotations a collection of annotations to find handlers for
-	 * @return a map of handler instances for each annotation
+	 * @return the handlers of the annotations, each with its annotation
+	 * @throws IllegalStateException see {@link AnnotationInterceptor#getPreHandlers()}
 	 */
-	protected Map<GenericAnnotationPreHandler<?>, Annotation> getCachedPreHandlers(Collection<Annotation> annotations)
+	protected Map<GenericAnnotationPreHandler<?>, Annotation> getCachedPreHandlers(Collection<Annotation> annotations) throws IllegalStateException
 	{
+		Map<Class<? extends Annotation>, List<GenericAnnotationPreHandler<?>>> handlers = this.getPreHandlers();
 		Map<GenericAnnotationPreHandler<?>, Annotation> handlersToParameters = new HashMap<>();
-		
+
 		for (Annotation annotation : annotations)
 		{
-			Optional<GenericAnnotationPreHandler<?>> handler = this.preHandlersForAnnotations.computeIfAbsent(annotation.annotationType(), this::findPreHandler);
-
-			if (handler.isPresent()) handlersToParameters.put(handler.get(), annotation);
+			for (GenericAnnotationPreHandler<?> handler : handlers.getOrDefault(annotation.annotationType(), Collections.emptyList())) handlersToParameters.put(handler, annotation);
 		}
 
 		return handlersToParameters;
 	}
 
 	/**
-	 * Loads and caches post handlers for given annotations. If a handler is found for an annotation
-	 * it is cached. The instances of the handlers are then mapped to the corresponding annotations.
-	 * 
+	 * Gets the post handlers of given annotations, mapped to the annotation each handler is executed with.
+	 * A handler of an annotation which is given twice (on the class and the method) is mapped to the later one.
+	 *
 	 * @param annotations a collection of annotations to find handlers for
-	 * @return a map of handler instances for each annotation
+	 * @return the handlers of the annotations, each with its annotation
+	 * @throws IllegalStateException see {@link AnnotationInterceptor#getPostHandlers()}
 	 */
-	protected Map<GenericAnnotationPostHandler<?>, Annotation> getCachedPostHandlers(Collection<Annotation> annotations)
+	protected Map<GenericAnnotationPostHandler<?>, Annotation> getCachedPostHandlers(Collection<Annotation> annotations) throws IllegalStateException
 	{
+		Map<Class<? extends Annotation>, List<GenericAnnotationPostHandler<?>>> handlers = this.getPostHandlers();
 		Map<GenericAnnotationPostHandler<?>, Annotation> handlersToParameters = new HashMap<>();
-		
+
 		for (Annotation annotation : annotations)
 		{
-			Optional<GenericAnnotationPostHandler<?>> handler = this.postHandlersForAnnotations.computeIfAbsent(annotation.annotationType(), this::findPostHandler);
-
-			if (handler.isPresent()) handlersToParameters.put(handler.get(), annotation);
+			for (GenericAnnotationPostHandler<?> handler : handlers.getOrDefault(annotation.annotationType(), Collections.emptyList())) handlersToParameters.put(handler, annotation);
 		}
 
 		return handlersToParameters;

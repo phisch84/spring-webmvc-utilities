@@ -91,12 +91,42 @@ annotations of the controller class and the method and executes their handlers:
   and that handler is responsible for the response.
 - `GenericAnnotationPostHandler<A>` after the request was processed, before the view is rendered.
 
-Handlers run by their `priority`, lowest number first. A handler is found as the bean of the annotation type, so a handler
-class extends one of the base classes **and implements the annotation's interface**, and it is registered as a singleton
-bean. Annotations without handler are ignored. Requests of other handlers (e.g. static resources) pass without handling.
+A project adds its own annotations without changing the library: it defines the annotation, writes a handler which extends
+one of the base classes **with the annotation as type argument**, and registers the handler as a singleton bean (any bean id).
+The handler gets the annotation of the controller (method), so it can read the annotation's attributes:
+
+```java
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.TYPE, ElementType.METHOD })
+public @interface RequiresRole
+{
+    String value();
+}
+
+public class RequiresRoleHandler extends GenericAnnotationPreHandler<RequiresRole>
+{
+    @Override
+    protected boolean handle(RequiresRole what, HttpServletRequest request, HttpServletResponse response) throws Exception
+    {
+        if (request.isUserInRole(what.value())) return true;
+
+        response.sendError(HttpServletResponse.SC_FORBIDDEN);
+
+        return false;
+    }
+}
+```
+
+The rules:
+
+- The interceptor collects all handler beans of its application context and its parent contexts on the first request.
+- An annotation may have any number of pre and post handlers; they run by their `priority`, lowest number first.
+- Annotations without handlers are ignored. Requests of other handlers (e.g. static resources) pass without handling.
+- The handler's class must bind the type argument to a concrete annotation (an intermediate generic base class is fine).
+  Otherwise, and if the interceptor wasn't created by Spring, requests fail with an `IllegalStateException` naming the cause.
 
 ```xml
-<bean id="RequiresLogin" class="com.example.RequiresLoginHandler" scope="singleton">
+<bean id="RequiresRoleHandler" class="com.example.RequiresRoleHandler" scope="singleton">
     <property name="priority" value="0" />
 </bean>
 
