@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,9 +32,13 @@ public class AnnotationInterceptor implements HandlerInterceptor
 	@Autowired
 	protected ApplicationContext context;
 	
-	static protected Map<HandlerMethod, Collection<Annotation>> annotationsForMethods = new HashMap<>();
-	static protected Map<Class<?>, GenericAnnotationPreHandler<?>> preHandlersForAnnotations = new HashMap<>();
-	static protected Map<Class<?>, GenericAnnotationPostHandler<?>> postHandlersForAnnotations = new HashMap<>();
+	/*
+	 * The caches belong to the interceptor, since the handlers are beans of its application context.
+	 * They are accessed by concurrent requests. An empty Optional caches that no handler was found.
+	 */
+	protected final Map<HandlerMethod, Collection<Annotation>> annotationsForMethods = new ConcurrentHashMap<>();
+	protected final Map<Class<?>, Optional<GenericAnnotationPreHandler<?>>> preHandlersForAnnotations = new ConcurrentHashMap<>();
+	protected final Map<Class<?>, Optional<GenericAnnotationPostHandler<?>>> postHandlersForAnnotations = new ConcurrentHashMap<>();
 	
 	/**
 	 * Gets class and method annotations for a given handler method.
@@ -41,22 +47,56 @@ public class AnnotationInterceptor implements HandlerInterceptor
 	 * @param handlerMethod the handler method to get the annotations for
 	 * @return a collection of annotations of the method and its declaring class
 	 */
-	static protected Collection<Annotation> getCachedAnnotations(HandlerMethod handlerMethod)
+	protected Collection<Annotation> getCachedAnnotations(HandlerMethod handlerMethod)
 	{
-		if (!annotationsForMethods.containsKey(handlerMethod))
+		return this.annotationsForMethods.computeIfAbsent(handlerMethod, method ->
 		{
-			Annotation[] classAnnotations = handlerMethod.getBeanType().getAnnotations();
-			Annotation[] methodAnnotations = handlerMethod.getMethod().getAnnotations();
+			Annotation[] classAnnotations = method.getBeanType().getAnnotations();
+			Annotation[] methodAnnotations = method.getMethod().getAnnotations();
 
 			Collection<Annotation> allAnnotations = new ArrayList<>(classAnnotations.length + methodAnnotations.length);
 
 			allAnnotations.addAll(Arrays.asList(classAnnotations));
 			allAnnotations.addAll(Arrays.asList(methodAnnotations));
 
-			annotationsForMethods.put(handlerMethod, allAnnotations);
-		}
+			return allAnnotations;
+		});
+	}
 
-		return annotationsForMethods.get(handlerMethod);
+	/**
+	 * Looks up the pre handler of an annotation in the application context
+	 *
+	 * @param annotationType the annotation to find the handler for
+	 * @return the handler, or an empty Optional if there is none
+	 */
+	protected Optional<GenericAnnotationPreHandler<?>> findPreHandler(Class<?> annotationType)
+	{
+		try
+		{
+			return Optional.of((GenericAnnotationPreHandler<?>) this.context.getBean(annotationType));
+		}
+		catch (Exception e)
+		{
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * Looks up the post handler of an annotation in the application context
+	 *
+	 * @param annotationType the annotation to find the handler for
+	 * @return the handler, or an empty Optional if there is none
+	 */
+	protected Optional<GenericAnnotationPostHandler<?>> findPostHandler(Class<?> annotationType)
+	{
+		try
+		{
+			return Optional.of((GenericAnnotationPostHandler<?>) this.context.getBean(annotationType));
+		}
+		catch (Exception e)
+		{
+			return Optional.empty();
+		}
 	}
 
 	/**
@@ -72,23 +112,9 @@ public class AnnotationInterceptor implements HandlerInterceptor
 		
 		for (Annotation annotation : annotations)
 		{
-			Class<?> annotationType = annotation.annotationType();
+			Optional<GenericAnnotationPreHandler<?>> handler = this.preHandlersForAnnotations.computeIfAbsent(annotation.annotationType(), this::findPreHandler);
 
-			try
-			{
-				if (!preHandlersForAnnotations.containsKey(annotationType))
-				{
-					preHandlersForAnnotations.put(annotationType, (GenericAnnotationPreHandler<?>)this.context.getBean(annotation.annotationType()));
-				}
-
-				GenericAnnotationPreHandler<?> handler = preHandlersForAnnotations.get(annotationType);
-
-				if (handler != null) handlersToParameters.put(handler, annotation);
-			}
-			catch (Exception e)
-			{
-				preHandlersForAnnotations.put(annotationType, null);
-			}
+			if (handler.isPresent()) handlersToParameters.put(handler.get(), annotation);
 		}
 
 		return handlersToParameters;
@@ -107,23 +133,9 @@ public class AnnotationInterceptor implements HandlerInterceptor
 		
 		for (Annotation annotation : annotations)
 		{
-			Class<?> annotationType = annotation.annotationType();
+			Optional<GenericAnnotationPostHandler<?>> handler = this.postHandlersForAnnotations.computeIfAbsent(annotation.annotationType(), this::findPostHandler);
 
-			try
-			{
-				if (!postHandlersForAnnotations.containsKey(annotationType))
-				{
-					postHandlersForAnnotations.put(annotationType, (GenericAnnotationPostHandler<?>)this.context.getBean(annotation.annotationType()));
-				}
-
-				GenericAnnotationPostHandler<?> handler = postHandlersForAnnotations.get(annotationType);
-
-				if (handler != null) handlersToParameters.put(handler, annotation);
-			}
-			catch (Exception e)
-			{
-				postHandlersForAnnotations.put(annotationType, null);
-			}
+			if (handler.isPresent()) handlersToParameters.put(handler.get(), annotation);
 		}
 
 		return handlersToParameters;
@@ -132,12 +144,13 @@ public class AnnotationInterceptor implements HandlerInterceptor
 	/**
 	 * {@inheritDoc}
 	 * 
-	 * Dispatches for actual handling if the handler is a {@link HandlerMethod}
+	 * Dispatches for actual handling if the handler is a {@link HandlerMethod}.
+	 * Requests of other handlers (e.g. static resources) are processed further without handling.
 	 */
 	@Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception
     {
-		if (!(handler instanceof HandlerMethod)) return false;
+		if (!(handler instanceof HandlerMethod)) return true;
 		if (!this.preHandle(request, response, (HandlerMethod)handler)) return false;
 		
 		return true;

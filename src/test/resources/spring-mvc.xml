@@ -14,7 +14,7 @@
     <context:component-scan base-package="com.schoste.ddd.application.v2.controller" />
 
     <mvc:annotation-driven />
-    <mvc:resources mapping="/resources/**" location="/resources/,/resources/default/" cache-period="31556926" />
+    <mvc:resources mapping="/resources/**" location="/resources/,/resources/default/,classpath:/static/" cache-period="31556926" />
     <mvc:interceptors>
         <bean class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
             <property name="paramName" value="lang" />
