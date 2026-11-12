@@ -40,8 +40,9 @@ provided by the web application:
 
 The library is compiled for Java 8 and uses the same stack as DAO 4 and Domain Repository 3: Spring 5.3 and Servlet 4.0
 (`javax.servlet`). The major version is part of both the artifact id and the package name
-(`com.schoste.ddd.application.v2`), so version 2 can be used side by side with version 1 (`spring-webmvc-utilities`,
-package `….application.v1`) while a project migrates.
+(`com.schoste.ddd.application.v2`), so version 2 can be used side by side with the older versions (`spring-webmvc-utilities`
+0.x, package `….application.v1`) while a project migrates; see
+[Migrating from Spring MVC Web Application Utilities 0.x](#migrating-from-spring-mvc-web-application-utilities-0x).
 
 ## Data transfer objects
 
@@ -151,6 +152,41 @@ exception is wrapped in an `ApplicationException`. The messages come from the li
 
 The DTO flags `isDeleted()` / `isAddedOrModified()` are a convention between a server and its clients; the library never
 reads or sets them.
+
+## Migrating from Spring MVC Web Application Utilities 0.x
+
+Version 2 builds on Domain Repository 3 and DAO 4; migrate those as well (their READMEs have migration sections). It needs
+Spring 5.3 and `javax.servlet` 4.0 (version 0.3 had moved to Spring 7 and Jakarta; version 2 uses the same stack as the other
+two libraries).
+
+**Behavior that changed without a compile error** – check these first:
+
+- **A DTO's id is never assigned to its entity anymore.** Before, `toDomainObject` copied the DTO's id into the entity. Now a
+  `null` or virtual id means a new entity with its own virtual id from the repository, and an actual id means the repository's
+  entity with this id (see [Data transfer objects](#data-transfer-objects)).
+- **An unknown id throws `EntityNotFoundException`** instead of failing with a `NullPointerException` inside an
+  `ApplicationException`.
+- **`NoRepositoryException`, `EntityNotFoundException` and `DomainException` arrive unchanged**; before, they were wrapped in an
+  `ApplicationException`.
+- **Annotation handlers are found by their type argument.** A handler no longer implements its annotation (remove
+  `implements MyAnnotation` and the stubbed annotation methods), its bean id is free, an annotation may have several pre and post
+  handlers, and handlers of parent contexts are found. A handler whose annotation can't be determined, or an interceptor
+  without application context, makes requests fail with an `IllegalStateException`.
+- **Requests of other handlers (e.g. static resources) pass the interceptor**; before, they were blocked.
+
+**Mapping:**
+
+| Old (`application.v1`) | New (`application.v2`) |
+|---|---|
+| `DataTransferObject` with an `int` id | `DataTransferObject<ID>` |
+| `getDomainObject()` / `setDomainObject(…)` | `getEntity()` / `setEntity(…)` |
+| `DataTransferObjectConverter<DO, DTO>` | `DataTransferObjectConverter<ID, E, DTO>` |
+| `createDomainObject(DTO)` | `createEntity(DTO)` |
+| `toDomainObject(DTO)` / `toDomainObjects(…)` | `toEntity(DTO)` / `toEntities(…)` |
+| `toDataTransferObjectsFromDomainObjects(…)` | `toDataTransferObjectsFromEntities(…)` |
+| `getDomainObjectRepository()` | `getRepository()` |
+| `GenericAnnotationPreHandler<A>` / `GenericAnnotationPostHandler<A>` implementing `A` | the same base classes, without implementing `A` |
+| resource bundle `exceptions` | `com.schoste.ddd.application.v2.exceptions.messages` |
 
 ## Building
 
