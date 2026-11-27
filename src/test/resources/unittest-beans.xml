@@ -19,9 +19,14 @@
     <bean id="ExampleMethodAnnotationPostHandler" class="com.schoste.ddd.application.v2.annotations.ExampleMethodAnnotationPostHandler" scope="singleton" />
 
     <bean id="ExampleRepository" class="com.schoste.ddd.application.v2.testfixtures.ExampleRepositoryImpl" scope="singleton" />
-	<bean id="ExampleEntity" class="com.schoste.ddd.application.v2.testfixtures.ExampleEntity" scope="prototype" />
-	<bean id="UnitOfWork" class="com.schoste.ddd.domain.v3.services.standard.UnitOfWorkImpl" scope="prototype" />
+    <bean id="ExampleEntity" class="com.schoste.ddd.application.v2.testfixtures.ExampleEntity" scope="prototype" />
+    <bean id="UnitOfWork" class="com.schoste.ddd.domain.v3.services.standard.UnitOfWorkImpl" scope="prototype" />
     <bean id="ExampleDO" class="com.schoste.ddd.application.v2.testfixtures.ExampleDO" scope="prototype" />
     <bean id="ExampleDAO" class="com.schoste.ddd.application.v2.testfixtures.ExampleDAOImpl" scope="singleton" />
-	<bean id="MockedDataTransferObjectAConverter" class="com.schoste.ddd.application.v2.dtos.mocked.MockedDataTransferObjectAConverterImpl" scope="prototype" />
+    <bean id="ExampleDTOConverter" class="com.schoste.ddd.application.v2.testfixtures.ExampleDTOConverterImpl" scope="prototype" />
+
+    <!-- without id: @AutoSet(className = ...) finds it by its class name, which Spring registers as alias of a bean without id -->
+    <bean class="com.schoste.ddd.application.v2.testfixtures.ExampleGreetingService">
+        <property name="greeting" value="Hello from Spring" />
+    </bean>
 </beans>

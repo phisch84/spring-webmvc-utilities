@@ -9,20 +9,21 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
 
-import com.schoste.ddd.application.v2.dtos.MockedDataTransferObjectA;
-import com.schoste.ddd.application.v2.dtos.mocked.MockedDataTransferObjectAConverterImpl;
 import com.schoste.ddd.application.v2.exceptions.ApplicationException;
 import com.schoste.ddd.application.v2.exceptions.EntityNotFoundException;
-import com.schoste.ddd.application.v2.exceptions.NoRepositoryException;
+import com.schoste.ddd.application.v2.testfixtures.ExampleDTO;
+import com.schoste.ddd.application.v2.testfixtures.ExampleDTOConverterImpl;
 import com.schoste.ddd.application.v2.testfixtures.ExampleEntity;
 import com.schoste.ddd.domain.v3.exceptions.DomainException;
 import com.schoste.ddd.domain.v3.services.GenericRepository;
 
 /**
- * Tests which exceptions the methods of {@link DataTransferObjectConverterImpl} pass on unchanged
- * ({@link DomainException} and {@link ApplicationException} with its subclasses) and which they wrap
- * (every other exception, in an {@link ApplicationException} with the exception as cause).
- * The collection methods are tested with a converter whose single-object methods fail.
+ * Decision 11: tests which exceptions the methods of {@link DataTransferObjectConverterImpl} pass on unchanged
+ * ({@link DomainException} and {@link ApplicationException} with its subclasses) and which they wrap (every other
+ * exception, in an {@link ApplicationException} with the exception as cause).
+ * The collection methods are tested with a converter whose single-object methods fail, the single-object methods with a
+ * converter whose repository or DTO creation fails. No Spring context is needed: the failures happen before the converter
+ * would use it.
  *
  * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  */
@@ -31,7 +32,7 @@ public class DataTransferObjectConverterImplExceptionTest
 	/**
 	 * Converter whose single-object methods throw a given exception, as far as their signatures allow it
 	 */
-	protected static class FailingConverter extends MockedDataTransferObjectAConverterImpl
+	protected static class FailingConverter extends ExampleDTOConverterImpl
 	{
 		protected final Exception failure;
 
@@ -50,7 +51,7 @@ public class DataTransferObjectConverterImplExceptionTest
 		}
 
 		@Override
-		public MockedDataTransferObjectA toDataTransferObject(ExampleEntity entity) throws DomainException, ApplicationException
+		public ExampleDTO toDataTransferObject(ExampleEntity entity) throws DomainException, ApplicationException
 		{
 			this.fail(true);
 
@@ -58,7 +59,7 @@ public class DataTransferObjectConverterImplExceptionTest
 		}
 
 		@Override
-		public MockedDataTransferObjectA toDataTransferObject(Object... param) throws ApplicationException
+		public ExampleDTO toDataTransferObject(Object... param) throws ApplicationException
 		{
 			try
 			{
@@ -73,13 +74,13 @@ public class DataTransferObjectConverterImplExceptionTest
 		}
 
 		@Override
-		public Object fromDataTransferObject(MockedDataTransferObjectA dto) throws ApplicationException
+		public Object fromDataTransferObject(ExampleDTO dto) throws ApplicationException
 		{
 			return this.toDataTransferObject(new Object[0]);
 		}
 
 		@Override
-		public ExampleEntity toEntity(MockedDataTransferObjectA dto) throws DomainException, ApplicationException
+		public ExampleEntity toEntity(ExampleDTO dto) throws DomainException, ApplicationException
 		{
 			this.fail(true);
 
@@ -93,7 +94,7 @@ public class DataTransferObjectConverterImplExceptionTest
 
 	protected final Collection<ExampleEntity> entities = Collections.singletonList(new ExampleEntity());
 	protected final Collection<Object[]> params = Collections.singletonList(new Object[0]);
-	protected final Collection<MockedDataTransferObjectA> dtos = Arrays.asList(new MockedDataTransferObjectA());
+	protected final Collection<ExampleDTO> dtos = Arrays.asList(new ExampleDTO());
 
 	protected void assertPassedOn(Exception expected, ThrowingRunnable call)
 	{
@@ -108,6 +109,62 @@ public class DataTransferObjectConverterImplExceptionTest
 
 		Assert.assertEquals(ApplicationException.class, actual.getClass());
 		Assert.assertSame(expected, actual.getCause());
+	}
+
+	/**
+	 * Creates a converter whose repository regards every id as actual and throws a given exception when an entity is requested
+	 *
+	 * @param failure the exception the repository throws
+	 * @return the converter
+	 */
+	@SuppressWarnings("unchecked")
+	protected ExampleDTOConverterImpl createConverterWithFailingRepository(Exception failure)
+	{
+		GenericRepository<Long, ExampleEntity, ?> failingRepository = (GenericRepository<Long, ExampleEntity, ?>) Proxy.newProxyInstance(
+				this.getClass().getClassLoader(),
+				new Class<?>[] { GenericRepository.class },
+				(proxy, method, args) ->
+				{
+					if (method.getName().equals("isVirtualId")) return false;
+
+					throw failure;
+				});
+
+		return new ExampleDTOConverterImpl()
+		{
+			@Override
+			public GenericRepository<Long, ExampleEntity, ?> getRepository()
+			{
+				return failingRepository;
+			}
+		};
+	}
+
+	/**
+	 * Creates a converter which can't create DTOs: it throws a given exception
+	 *
+	 * @param failure the exception {@code createDataTransferObject()} throws
+	 * @return the converter
+	 */
+	protected ExampleDTOConverterImpl createConverterWithFailingDTOCreation(RuntimeException failure)
+	{
+		return new ExampleDTOConverterImpl()
+		{
+			@Override
+			public ExampleDTO createDataTransferObject()
+			{
+				throw failure;
+			}
+		};
+	}
+
+	protected ExampleDTO createDTO(Long id)
+	{
+		ExampleDTO dto = new ExampleDTO();
+
+		dto.setId(id);
+
+		return dto;
 	}
 
 	@Test
@@ -190,48 +247,10 @@ public class DataTransferObjectConverterImplExceptionTest
 		this.assertWrapped(this.runtimeException, () -> converter.toEntities(this.dtos));
 	}
 
-	/**
-	 * Creates a converter whose repository regards every id as actual and throws a given exception when an entity is requested
-	 *
-	 * @param failure the exception the repository throws
-	 * @return the converter
-	 */
-	@SuppressWarnings("unchecked")
-	protected MockedDataTransferObjectAConverterImpl createConverterWithFailingRepository(Exception failure)
-	{
-		GenericRepository<Long, ExampleEntity, ?> failingRepository = (GenericRepository<Long, ExampleEntity, ?>) Proxy.newProxyInstance(
-				this.getClass().getClassLoader(),
-				new Class<?>[] { GenericRepository.class },
-				(proxy, method, args) ->
-				{
-					if (method.getName().equals("isVirtualId")) return false;
-
-					throw failure;
-				});
-
-		return new MockedDataTransferObjectAConverterImpl()
-		{
-			@Override
-			public GenericRepository<Long, ExampleEntity, ?> getRepository()
-			{
-				return failingRepository;
-			}
-		};
-	}
-
-	protected MockedDataTransferObjectA createDTO(Long id)
-	{
-		MockedDataTransferObjectA dto = new MockedDataTransferObjectA();
-
-		dto.setId(id);
-
-		return dto;
-	}
-
 	@Test
 	public void testCreateEntityPassesOnDomainException()
 	{
-		MockedDataTransferObjectAConverterImpl converter = this.createConverterWithFailingRepository(this.domainException);
+		ExampleDTOConverterImpl converter = this.createConverterWithFailingRepository(this.domainException);
 
 		this.assertPassedOn(this.domainException, () -> converter.createEntity(this.createDTO(1L)));
 	}
@@ -239,7 +258,7 @@ public class DataTransferObjectConverterImplExceptionTest
 	@Test
 	public void testToEntityPassesOnDomainExceptionOfRepository()
 	{
-		MockedDataTransferObjectAConverterImpl converter = this.createConverterWithFailingRepository(this.domainException);
+		ExampleDTOConverterImpl converter = this.createConverterWithFailingRepository(this.domainException);
 
 		this.assertPassedOn(this.domainException, () -> converter.toEntity(this.createDTO(1L)));
 	}
@@ -247,18 +266,72 @@ public class DataTransferObjectConverterImplExceptionTest
 	@Test
 	public void testCreateEntityWrapsOtherExceptions()
 	{
-		MockedDataTransferObjectAConverterImpl converter = this.createConverterWithFailingRepository(this.runtimeException);
+		ExampleDTOConverterImpl converter = this.createConverterWithFailingRepository(this.runtimeException);
 
 		this.assertWrapped(this.runtimeException, () -> converter.createEntity(this.createDTO(1L)));
 	}
 
+	@Test
+	public void testToEntityWrapsOtherExceptions()
+	{
+		ExampleDTOConverterImpl converter = this.createConverterWithFailingRepository(this.runtimeException);
+
+		this.assertWrapped(this.runtimeException, () -> converter.toEntity(this.createDTO(1L)));
+	}
+
 	/**
-	 * Asserts that the messages of the exceptions are found in the library's resource bundle
+	 * A DomainException of the automatic conversion is passed on. Here it fails because the converter has no application
+	 * context, which the {@code @AutoSet} annotations of {@link ExampleDTO} need for their instances.
 	 */
 	@Test
-	public void testExceptionMessages()
+	public void testToDataTransferObjectOfEntityPassesOnDomainExceptionOfConversion()
 	{
-		Assert.assertEquals("No repository has been defined", new NoRepositoryException().getMessage());
-		Assert.assertEquals("No entity with id 4711 has been found", new EntityNotFoundException(4711L).getMessage());
+		ExampleDTOConverterImpl converter = new ExampleDTOConverterImpl();
+
+		Assert.assertThrows(DomainException.class, () -> converter.toDataTransferObject(new ExampleEntity()));
+	}
+
+	/**
+	 * An exception of the hook is wrapped; the repository gives a new entity for every DTO
+	 */
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testToEntityWrapsOtherExceptionsOfHook()
+	{
+		GenericRepository<Long, ExampleEntity, ?> creatingRepository = (GenericRepository<Long, ExampleEntity, ?>) Proxy.newProxyInstance(
+				this.getClass().getClassLoader(),
+				new Class<?>[] { GenericRepository.class },
+				(proxy, method, args) ->
+				{
+					if (method.getName().equals("isVirtualId")) return true;
+					if (method.getName().equals("createEntity")) return new ExampleEntity();
+
+					throw new UnsupportedOperationException(method.getName());
+				});
+
+		ExampleDTOConverterImpl converter = new ExampleDTOConverterImpl()
+		{
+			@Override
+			public GenericRepository<Long, ExampleEntity, ?> getRepository()
+			{
+				return creatingRepository;
+			}
+
+			@Override
+			protected void afterAutoConversion(ExampleDTO sourceDataTransferObject, ExampleEntity destinationEntity)
+			{
+				throw runtimeException;
+			}
+		};
+
+		this.assertWrapped(this.runtimeException, () -> converter.toEntity(this.createDTO(null)));
+	}
+
+	@Test
+	public void testToDataTransferObjectOfEntityWrapsOtherExceptions()
+	{
+		ExampleDTOConverterImpl converter = this.createConverterWithFailingDTOCreation(this.runtimeException);
+
+		this.assertWrapped(this.runtimeException, () -> converter.toDataTransferObject(new ExampleEntity()));
 	}
 }

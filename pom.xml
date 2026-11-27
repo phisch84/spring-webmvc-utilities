@@ -48,6 +48,7 @@
         <maven.surfeire.version>3.5.5</maven.surfeire.version>
         <maven.javadoc-plugin.version>3.11.2</maven.javadoc-plugin.version>
         <versions-maven-plugin.version>2.25.1</versions-maven-plugin.version>
+        <jacoco.version>0.8.12</jacoco.version>
         <junit.version>4.13.2</junit.version>
         <!-- latest Spring version compatible with Java 8 (same as dao and domain-repository) -->
         <spring.version>5.3.39</spring.version>
@@ -190,6 +191,31 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <!--
+            Test coverage: a report (not a gate) in target/site/jacoco (index.html for people, jacoco.csv / jacoco.xml for tools),
+            written by mvn verify
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Javadoc of the main and test classes; doclint fails the build on any warning -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

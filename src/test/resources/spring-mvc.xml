@@ -11,7 +11,8 @@
     http://www.springframework.org/schema/mvc
     http://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
-    <context:component-scan base-package="com.schoste.ddd.application.v2.controller" />
+    <!-- the test controller and the controller secured by the README example annotation -->
+    <context:component-scan base-package="com.schoste.ddd.application.v2.controller, com.schoste.ddd.application.v2.examples" />
 
     <mvc:annotation-driven />
     <mvc:resources mapping="/resources/**" location="/resources/,/resources/default/,classpath:/static/" cache-period="31556926" />

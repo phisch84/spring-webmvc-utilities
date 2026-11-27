@@ -15,8 +15,9 @@ the **POM** (name, description) and, at most, the README on GitHub. Therefore:
   jar (except missing comments).
 - A change of behavior updates, in the same step: the Javadoc where users read the rule, the README if it mentions it,
   `CHANGELOG.md` (under the version in development), and `docs/decisions.md` if a decision changes.
-- The examples in the package documentation and the README are copied as they are, so compile them against the built jars
-  (e.g. with `javac`) whenever they change; doclint doesn't check code in `<pre>` blocks.
+- The examples in the README and the package documentation are copied as they are, so the test package `examples` holds
+  them verbatim and `ExamplesTest` runs them: change an example there and in the documentation together (doclint doesn't
+  check code in `<pre>` blocks).
 
 ## Layout
 
@@ -29,13 +30,25 @@ One Maven module, artifact `spring-webmvc-utilities2`, package `com.schoste.ddd.
 | `interceptor` | `AnnotationInterceptor`, the handler base classes `GenericAnnotationPreHandler` / `GenericAnnotationPostHandler` |
 | `exceptions` | `ApplicationException` and its subclasses; messages in `src/main/resources/…/exceptions/messages.properties` |
 
-Tests (`src/test/java`, same package root):
+Tests (`src/test/java`, same package root; no mocking framework, the fixtures are real implementations):
 
-- `dtos.standard.DataTransferObjectConverterImplUnitTest` and `…ExceptionTest` check the converter rules on the in-memory
-  repository of `testfixtures` (built on `AbstractInMemoryDAO` from the `dao4` test jar).
-- `interceptor.AnnotationInterceptorTest` checks how handlers are found and run; `controller.TestControllerIntegrationTest`
-  runs the interceptor in Spring MVC (`MockMvc`, configuration in `src/test/resources/spring-mvc.xml`).
-- The example annotations and handlers are in `annotations`.
+| Test | Checks |
+|---|---|
+| `dtos.standard.DataTransferObjectConverterImplTest` | the converter rules, on the in-memory repository of `testfixtures` |
+| `dtos.standard.DataTransferObjectConverterImplExceptionTest` | which exceptions are passed on and which are wrapped (decision 11) |
+| `dtos.DataTransferObjectTest` | serialization and flags of DTOs |
+| `interceptor.AnnotationInterceptorTest` | finding, ordering and running handlers; rejecting, stopping, failing; configuration errors |
+| `interceptor.GenericAnnotationHandlerTest` | the handler base classes on their own |
+| `controller.TestControllerIntegrationTest` | the interceptor in Spring MVC (`MockMvc`) |
+| `examples.ExamplesTest` | the examples of the README and the package documentation, in Spring MVC |
+| `exceptions.ApplicationExceptionTest` | the global exception handler and the messages |
+
+Fixtures: `testfixtures` (entity, data object, in-memory DAO on `AbstractInMemoryDAO` of the `dao4` test jar, repository, DTO,
+converter), `annotations` (example annotations and the recording handlers `RecordingPreHandler` / `RecordingPostHandler`, which
+tests can make reject or fail), `controller` (`TestController`), `examples` (see above). Spring configuration, loaded from the
+classpath: `src/test/resources/unittest-beans.xml` (fixtures), `spring-mvc.xml` (Spring MVC with the interceptor),
+`examples-beans.xml`. Interceptor tests which need special handlers build an own context
+(`AnnotationInterceptorTest.createContext`) instead of adding beans to the shared XML.
 
 ## Build and test
 
@@ -44,8 +57,13 @@ Tests (`src/test/java`, same package root):
 - `mvn clean install` runs all tests and builds the jar, test jar and Javadoc jars.
 - `domain-repository3` and `dao4` come from GitHub Packages (repository ids `github-domain-repository` and `github-dao`): your
   `~/.m2/settings.xml` needs a `<server>` for each of these ids with a token with `read:packages`.
-- Tests go through the public interface. Test names: `test` + method + situation/expectation, e.g.
-  `testToDataTransferObjectsWrapsOtherExceptions`; a new rule gets its test first.
+- `mvn clean verify` also writes a coverage report to `target/site/jacoco` (`index.html`; `jacoco.csv` and `jacoco.xml` for
+  tools). It isn't a gate, but all lines are covered: a change which leaves lines uncovered needs a test or a reason.
+- Tests go through the public interface. Test names: `test` + method or subject + situation/expectation, e.g.
+  `testToEntityWithUnknownIdThrows`. Each test's Javadoc states the rule it checks and names its decision of
+  `docs/decisions.md` ("Decision 4: …"), so `grep "Decision 4"` finds the tests of a decision. A new rule gets its test first.
+- Shared singleton handlers count their invocations over all tests of a context: compare counts before and after, never
+  absolute values. The build output stays quiet (no `print()` of MockMvc), so failures are easy to find.
 
 ## Conventions
 

@@ -1,0 +1,20 @@
+<beans
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!-- the handler of the README example, as registered there; the recording handler runs after it (higher number) -->
+    <bean id="RequiresRoleHandler" class="com.schoste.ddd.application.v2.examples.RequiresRoleHandler" scope="singleton">
+        <property name="priority" value="0" />
+    </bean>
+    <bean id="RequiresRoleRecordingHandler" class="com.schoste.ddd.application.v2.examples.RequiresRoleRecordingHandler" scope="singleton">
+        <property name="priority" value="10" />
+    </bean>
+
+    <!-- what the converter example of the package documentation presumes -->
+    <bean id="CustomerDAO" class="com.schoste.ddd.application.v2.examples.CustomerDAO" scope="singleton" />
+    <bean id="CustomerRepository" class="com.schoste.ddd.application.v2.examples.CustomerRepositoryImpl" scope="singleton" />
+    <bean id="CustomerDTOConverter" class="com.schoste.ddd.application.v2.examples.CustomerDTOConverterImpl" scope="prototype" />
+</beans>

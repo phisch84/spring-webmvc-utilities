@@ -1,4 +1,4 @@
 /**
- * Package for V1 controllers of the application
+ * Controller with example annotations, which the interceptor tests use
  */
 package com.schoste.ddd.application.v2.controller;

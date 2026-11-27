@@ -10,8 +10,10 @@ import javax.servlet.http.HttpServletResponse;
 import com.schoste.ddd.application.v2.interceptor.GenericAnnotationPreHandler;
 
 /**
- * Pre handler which records its invocations, for tests.
- * It is an intermediate generic base class: the annotation is bound by the extending classes.
+ * Pre handler which records its invocations, for tests. By default it lets the request through; tests can make it reject
+ * the request ({@link #setResult(boolean)}) or fail ({@link #setFailure(Exception)}).
+ * It is an intermediate generic base class: the annotation is bound by the extending classes (also anonymous ones, e.g.
+ * {@code new RecordingPreHandler<ExampleMethodAnnotation>() { }}).
  *
  * @author Philipp Schosteritsch &lt;s.philipp@schoste.com&gt;
  *
@@ -20,38 +22,30 @@ import com.schoste.ddd.application.v2.interceptor.GenericAnnotationPreHandler;
 public abstract class RecordingPreHandler<A extends Annotation> extends GenericAnnotationPreHandler<A>
 {
 	/**
-	 * Counts the invocations of all recording handlers, to determine their order
+	 * Counts the invocations of all recording handlers (pre and post), to determine their order
 	 */
 	public static final AtomicLong SEQUENCE = new AtomicLong();
 
 	protected final AtomicInteger invocations = new AtomicInteger();
 	protected volatile A lastAnnotation = null;
 	protected volatile long lastSequence = 0;
+	protected volatile boolean result = true;
+	protected volatile Exception failure = null;
 
-	/**
-	 * Gets how often the handler has handled a request
-	 *
-	 * @return the number of handled requests
-	 */
 	public int getInvocations()
 	{
 		return this.invocations.get();
 	}
 
-	/**
-	 * Gets the annotation the handler has handled last
-	 *
-	 * @return the annotation, or null if the handler hasn't handled one yet
-	 */
 	public A getLastAnnotation()
 	{
 		return this.lastAnnotation;
 	}
 
 	/**
-	 * Gets the position of the last invocation in the sequence of the invocations of all recording handlers
+	 * Gets the position of the last invocation among the invocations of all recording handlers
 	 *
-	 * @return the position, or 0 if the handler hasn't been invoked yet
+	 * @return the position; 0 if the handler wasn't invoked yet
 	 */
 	public long getLastSequence()
 	{
@@ -59,8 +53,25 @@ public abstract class RecordingPreHandler<A extends Annotation> extends GenericA
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Sets what the handler returns
+	 *
+	 * @param result true to let the request through, false to reject it
 	 */
+	public void setResult(boolean result)
+	{
+		this.result = result;
+	}
+
+	/**
+	 * Sets an exception the handler throws (after recording the invocation)
+	 *
+	 * @param failure the exception, or null to return normally
+	 */
+	public void setFailure(Exception failure)
+	{
+		this.failure = failure;
+	}
+
 	@Override
 	protected boolean handle(A what, HttpServletRequest request, HttpServletResponse response) throws Exception
 	{
@@ -68,6 +79,8 @@ public abstract class RecordingPreHandler<A extends Annotation> extends GenericA
 		this.lastSequence = SEQUENCE.incrementAndGet();
 		this.invocations.incrementAndGet();
 
-		return true;
+		if (this.failure != null) throw this.failure;
+
+		return this.result;
 	}
 }
