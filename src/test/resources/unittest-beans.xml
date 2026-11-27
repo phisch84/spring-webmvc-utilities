@@ -1,0 +1,32 @@
+<beans 
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    
+    xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!-- annotation handlers: found by their type argument, so their ids are arbitrary -->
+    <bean id="ExampleClassAnnotationPreHandler" class="com.schoste.ddd.application.v2.annotations.ExampleClassAnnotationPreHandler" scope="singleton">
+        <property name="priority" value="0" />
+    </bean>
+    <bean id="ExampleMethodAnnotationPreHandler" class="com.schoste.ddd.application.v2.annotations.ExampleMethodAnnotationPreHandler" scope="singleton">
+        <property name="priority" value="1" />
+    </bean>
+    <bean id="ExampleMethodAnnotationSecondPreHandler" class="com.schoste.ddd.application.v2.annotations.ExampleMethodAnnotationSecondPreHandler" scope="singleton">
+        <property name="priority" value="2" />
+    </bean>
+    <bean id="ExampleMethodAnnotationPostHandler" class="com.schoste.ddd.application.v2.annotations.ExampleMethodAnnotationPostHandler" scope="singleton" />
+
+    <bean id="ExampleRepository" class="com.schoste.ddd.application.v2.testfixtures.ExampleRepositoryImpl" scope="singleton" />
+    <bean id="ExampleEntity" class="com.schoste.ddd.application.v2.testfixtures.ExampleEntity" scope="prototype" />
+    <bean id="UnitOfWork" class="com.schoste.ddd.domain.v3.services.standard.UnitOfWorkImpl" scope="prototype" />
+    <bean id="ExampleDO" class="com.schoste.ddd.application.v2.testfixtures.ExampleDO" scope="prototype" />
+    <bean id="ExampleDAO" class="com.schoste.ddd.application.v2.testfixtures.ExampleDAOImpl" scope="singleton" />
+    <bean id="ExampleDTOConverter" class="com.schoste.ddd.application.v2.testfixtures.ExampleDTOConverterImpl" scope="prototype" />
+
+    <!-- without id: @AutoSet(className = ...) finds it by its class name, which Spring registers as alias of a bean without id -->
+    <bean class="com.schoste.ddd.application.v2.testfixtures.ExampleGreetingService">
+        <property name="greeting" value="Hello from Spring" />
+    </bean>
+</beans>
