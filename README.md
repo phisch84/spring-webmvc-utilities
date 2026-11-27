@@ -8,7 +8,8 @@ A small library for the application layer of Spring MVC web applications built o
 - An **annotation interceptor**, which executes handlers for custom annotations of controllers and their methods
   (e.g. to check a login before a request is processed).
 
-> **Status:** version 2.0.0 is under development and not released yet. This page describes the contract of 2.0.0.
+> **Status:** this page describes version 2.0.0 (`2.0.0.RELEASE`), the first release of Spring MVC Web Application
+> Utilities 2; what changed between the versions is in the [changelog](CHANGELOG.md).
 > The Javadoc of each type is the complete reference; this page is the entry point.
 
 ## Dependencies
@@ -21,7 +22,7 @@ provided by the web application:
 <dependency>
     <groupId>com.schoste.ddd.application</groupId>
     <artifactId>spring-webmvc-utilities2</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.0.RELEASE</version>
 </dependency>
 
 <!-- provided by the web application -->
@@ -37,6 +38,59 @@ provided by the web application:
     <scope>provided</scope>
 </dependency>
 ```
+
+Release versions end with `.RELEASE` (e.g. `2.0.0.RELEASE`); they never change. Development versions (`-SNAPSHOT`) aren't
+published. Version 2.0.0 is built and tested with `domain-repository3` 3.0.0 and `dao4` 4.1.0.
+
+### Getting the artifacts
+
+GitHub Packages needs a login also for public packages. This library, Domain Repository 3 and DAO 4 come from three
+registries, which one token can read:
+
+1. Create a GitHub personal access token (classic) with the scope `read:packages`.
+2. Add it to your Maven settings (`~/.m2/settings.xml`), once for each registry:
+
+   ```xml
+   <servers>
+       <server>
+           <id>github-spring-webmvc-utilities</id>
+           <username>YOUR_GITHUB_USER</username>
+           <password>YOUR_TOKEN</password>
+       </server>
+       <server>
+           <id>github-domain-repository</id>
+           <username>YOUR_GITHUB_USER</username>
+           <password>YOUR_TOKEN</password>
+       </server>
+       <server>
+           <id>github-dao</id>
+           <username>YOUR_GITHUB_USER</username>
+           <password>YOUR_TOKEN</password>
+       </server>
+   </servers>
+   ```
+
+3. Add the registries to your project's `pom.xml`, with the same ids:
+
+   ```xml
+   <repositories>
+       <repository>
+           <id>github-spring-webmvc-utilities</id>
+           <url>https://maven.pkg.github.com/phisch84/spring-webmvc-utilities</url>
+       </repository>
+       <repository>
+           <id>github-domain-repository</id>
+           <url>https://maven.pkg.github.com/phisch84/domain-repository</url>
+       </repository>
+       <repository>
+           <id>github-dao</id>
+           <url>https://maven.pkg.github.com/phisch84/dao</url>
+       </repository>
+   </repositories>
+   ```
+
+The Javadoc jar is the reference documentation: IDEs show it when they download it (e.g. Eclipse and VS Code with
+"download Javadoc" enabled, or `mvn dependency:resolve -Dclassifier=javadoc`). Start with its overview.
 
 The library is compiled for Java 8 and uses the same stack as DAO 4 and Domain Repository 3: Spring 5.3 and Servlet 4.0
 (`javax.servlet`). The major version is part of both the artifact id and the package name
@@ -82,6 +136,17 @@ A converter extends `DataTransferObjectConverterImpl<ID, E, DTO>`, is a Spring b
 injected) and implements `getRepository()`, `createDataTransferObject()`, `toDataTransferObject(Object...)`,
 `fromDataTransferObject(DTO)` and the two hooks. The Javadoc of the package `com.schoste.ddd.application.v2.dtos.standard`
 contains a complete example.
+
+### Common mistakes
+
+- **Expecting `toEntity` to save:** it only converts; add the entity (new) or mark it modified (existing) and commit a Unit of
+  Work.
+- **Expecting the DTO's id on the entity:** a new entity gets a virtual id of the repository, and the actual id only on
+  commit; send the id back to the client after the commit.
+- **Making up actual ids on the client:** an id the repository doesn't know throws `EntityNotFoundException`; new objects
+  have a `null` or virtual id.
+- **Forgetting `@AutoSet`:** properties whose destination setter isn't annotated aren't converted; set them in
+  `afterAutoConversion` or annotate the setter.
 
 ## Annotation interceptor
 
@@ -141,6 +206,14 @@ The rules:
 
 The Javadoc of the package `com.schoste.ddd.application.v2.interceptor` contains the complete example.
 
+### Common mistakes
+
+- **Leaving the type argument open** (e.g. `class MyHandler<A extends Annotation> extends GenericAnnotationPreHandler<A>`):
+  the interceptor can't tell which annotation the handler is for, and requests fail with an `IllegalStateException`.
+- **Creating the interceptor with `new`** in a Java configuration without making it a bean: it gets no application context,
+  and requests fail with an `IllegalStateException`.
+- **An annotation without runtime retention:** it isn't visible at runtime, so its handlers never run.
+
 ## Exceptions
 
 All exceptions extend `ApplicationException`. If `ApplicationException.handler` is set, it is notified whenever one is created
@@ -189,6 +262,9 @@ two libraries).
 | resource bundle `exceptions` | `com.schoste.ddd.application.v2.exceptions.messages` |
 
 ## Building
+
+Contributors (people and AI agents) start with [AGENTS.md](AGENTS.md): layout, conventions and how to test; the reasons
+behind the design are in [docs/decisions.md](docs/decisions.md).
 
 ```
 mvn clean install

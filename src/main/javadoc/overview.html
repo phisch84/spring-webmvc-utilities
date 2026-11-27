@@ -31,6 +31,26 @@ Annotations without handlers are ignored, requests of static resources pass unha
 (an unresolvable handler, an interceptor without application context) fail with an {@link java.lang.IllegalStateException}.</li>
 </ul>
 
+<h1>Common mistakes</h1>
+<ul>
+<li><b>Expecting a conversion to save:</b> converting only converts; add the entity (new) or mark it modified (existing)
+in the repository and commit a Unit of Work.</li>
+<li><b>Making up actual ids on the client:</b> an id the repository doesn't know throws
+{@link com.schoste.ddd.application.v2.exceptions.EntityNotFoundException}; new objects have a null or virtual id.</li>
+<li><b>Forgetting {@code @AutoSet}:</b> properties whose destination setter isn't annotated aren't converted; set them in
+the converter's {@code afterAutoConversion} hooks.</li>
+<li><b>Leaving the handler's type argument open</b> (e.g. a generic handler class), or <b>creating the interceptor with
+{@code new}</b> instead of by Spring: requests fail with an {@link java.lang.IllegalStateException}.</li>
+<li><b>An annotation without runtime retention:</b> its handlers never run.</li>
+</ul>
+
+<h1>Getting the artifact</h1>
+<p>The artifact {@code com.schoste.ddd.application:spring-webmvc-utilities2} is published to GitHub Packages, together with
+this Javadoc ({@code javadoc} classifier); it brings {@code domain-repository3} and {@code dao4} along, which come from the
+registries of their own repositories. Release versions end with {@code .RELEASE}. The README of
+<a href="https://github.com/phisch84/spring-webmvc-utilities">the GitHub repository</a> shows the Maven settings and the
+changelog.</p>
+
 <h1>Compatibility</h1>
 <p>Compiled for Java 8. Needs Spring 5.3 and Servlet 4.0 ({@code javax.servlet}), which the web application provides.
 The major version is part of the artifact id ({@code spring-webmvc-utilities2}) and of the package name
